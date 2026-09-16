@@ -1,0 +1,4 @@
+supabase/
+wrangler.jsonc
+.git/
+.gitignore
