@@ -1,996 +1,690 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>প্রদীপ (Prodip) · স্বপ্ন বুননের একটি পথচলা</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root {
-            --prodip-navy: #1E2C4F;
-            --prodip-navy-dark: #141E36;
-            --prodip-crimson: #8E1B32;
-            --prodip-crimson-hover: #731326;
-            --prodip-olive: #7B9356;
-            --prodip-olive-hover: #667d45;
-            --prodip-gold: #E5A823;
-            --prodip-gold-glow: rgba(229, 168, 35, 0.45);
-            --prodip-canvas: #F9F8F5;
-            --prodip-card: #FFFFFF;
-            --prodip-text: #1C2430;
-            --prodip-muted: #64748B;
-            --prodip-border: #E2E8F0;
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>প্রদীপ (Prodip) · স্বপ্ন বুননের একটি পথচলা</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Hind+Siliguri:wght@400;500;600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<style>
+:root {
+    --prodip-navy: #1E2C4F; --prodip-navy-dark: #141E36;
+    --prodip-crimson: #8E1B32; --prodip-crimson-hover: #731326;
+    --prodip-olive: #7B9356; --prodip-olive-hover: #667d45;
+    --prodip-gold: #E5A823; --prodip-gold-glow: rgba(229, 168, 35, 0.45);
+    --prodip-canvas: #F9F8F5; --prodip-card: #FFFFFF;
+    --prodip-text: #1C2430; --prodip-muted: #64748B; --prodip-border: #E2E8F0;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', 'Hind Siliguri', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+body { background: var(--prodip-canvas); color: var(--prodip-text); min-height: 100vh; display: flex; flex-direction: column; }
+a { color: var(--prodip-navy); } a:hover { color: var(--prodip-navy-dark); }
+:focus-visible { outline: 2px solid var(--prodip-gold); outline-offset: 2px; border-radius: 4px; }
+button { font: inherit; }
+svg { flex-shrink: 0; }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-        body { background: var(--prodip-canvas); color: var(--prodip-text); min-height: 100vh; display: flex; flex-direction: column; }
+/* ─── RIBBON BAR ─── */
+.ribbon-bar { background: var(--prodip-navy); color: white; padding: 0 36px; display: flex; align-items: center; justify-content: space-between; height: 70px; box-shadow: 0 4px 22px rgba(20, 30, 54, 0.18); position: sticky; top: 0; z-index: 1000; }
+.ribbon-brand { display: flex; align-items: center; gap: 14px; text-decoration: none; color: white; cursor: pointer; border: none; background: transparent; }
+.ribbon-logo-badge { width: 46px; height: 46px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.25); flex-shrink: 0; }
+.ribbon-title h1 { font-size: 19px; font-weight: 800; letter-spacing: 0.3px; }
+.ribbon-title span { font-size: 11px; opacity: 0.85; display: block; font-weight: 400; }
+.ribbon-nav { display: flex; align-items: center; gap: 12px; }
+.ribbon-link { color: #cbd5e1; padding: 9px 16px; border-radius: 8px; font-size: 13.5px; font-weight: 600; text-decoration: none; transition: 0.2s; cursor: pointer; border: none; background: transparent; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.ribbon-link:hover { color: white; background: rgba(255, 255, 255, 0.12); }
+.ribbon-link.active-tab { color: white; background: rgba(255, 255, 255, 0.15); }
+.ribbon-link.donate-pill { background: var(--prodip-crimson); color: white; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 3px 10px rgba(142, 27, 50, 0.35); }
+.ribbon-link.donate-pill:hover { background: var(--prodip-crimson-hover); }
+.ribbon-link.profile-highlight-pill { background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; font-weight: 700; border: 1px solid rgba(254, 243, 199, 0.6); box-shadow: 0 0 16px var(--prodip-gold-glow); padding: 9px 18px; border-radius: 30px; }
+.ribbon-link.profile-highlight-pill:hover { background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 0 22px rgba(245, 158, 11, 0.6); color: #000; }
 
-        /* ─── RIBBON BAR ─── */
-        .ribbon-bar {
-            background: var(--prodip-navy);
-            color: white;
-            padding: 0 36px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: 70px;
-            box-shadow: 0 4px 22px rgba(20, 30, 54, 0.18);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-        .ribbon-brand {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            text-decoration: none;
-            color: white;
-            cursor: pointer;
-        }
-        .ribbon-logo-badge {
-            width: 46px;
-            height: 46px;
-            border-radius: 50%;
-            background: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.25);
-            overflow: hidden;
-            flex-shrink: 0;
-            padding: 2px;
-        }
-        .ribbon-logo-badge img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            border-radius: 50%;
-        }
-        .ribbon-title h1 { font-size: 19px; font-weight: 800; letter-spacing: 0.3px; }
-        .ribbon-title span { font-size: 11px; opacity: 0.85; display: block; font-weight: 400; }
-        .ribbon-nav { display: flex; align-items: center; gap: 12px; }
-        .ribbon-link {
-            color: #cbd5e1;
-            padding: 9px 16px;
-            border-radius: 8px;
-            font-size: 13.5px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: 0.2s;
-            cursor: pointer;
-            border: none;
-            background: transparent;
-        }
-        .ribbon-link:hover { color: white; background: rgba(255, 255, 255, 0.12); }
-        .ribbon-link.active-tab { color: white; background: rgba(255, 255, 255, 0.15); }
-        .ribbon-link.donate-pill {
-            background: var(--prodip-crimson);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 3px 10px rgba(142, 27, 50, 0.35);
-        }
-        .ribbon-link.donate-pill:hover { background: var(--prodip-crimson-hover); }
+/* ─── APP SHELL ─── */
+.container { max-width: 1180px; width: 100%; margin: 28px auto; padding: 0 20px 40px; flex: 1; }
+.view-section { display: none; }
+.view-section.active { display: block; animation: fadeIn 0.25s ease-in-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+.skel { background: linear-gradient(90deg,#eef1f4 25%,#f6f8fa 37%,#eef1f4 63%); background-size: 400% 100%; animation: shimmer 1.4s ease-in-out infinite; border-radius: 4px; }
 
-        .ribbon-link.profile-highlight-pill {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: #0f172a;
-            font-weight: 700;
-            border: 1px solid rgba(254, 243, 199, 0.6);
-            box-shadow: 0 0 16px var(--prodip-gold-glow);
-            padding: 9px 18px;
-            border-radius: 30px;
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-        }
-        .ribbon-link.profile-highlight-pill:hover {
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
-            box-shadow: 0 0 22px rgba(245, 158, 11, 0.6);
-            color: #000;
-        }
+/* ─── PROFILE / DASHBOARD ─── */
+.portal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 14px; border-bottom: 2px solid var(--prodip-border); flex-wrap: wrap; gap: 12px; }
+.portal-header h2 { font-size: 22px; color: var(--prodip-navy); display: flex; align-items: center; gap: 10px; font-weight: 800; }
+.profile-layout { display: grid; grid-template-columns: 340px 1fr; gap: 24px; }
+.card { background: var(--prodip-card); border: 1px solid var(--prodip-border); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.035); }
+.profile-avatar-wrap { text-align: center; padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid var(--prodip-border); }
+.profile-avatar { width: 82px; height: 82px; border-radius: 50%; background: linear-gradient(135deg, #e2e8f0, #cbd5e1); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; border: 4px solid var(--prodip-canvas); }
+.profile-name { font-size: 19px; font-weight: 800; color: var(--prodip-navy); }
+.profile-student-id { font-size: 13px; color: var(--prodip-muted); margin-top: 3px; font-weight: 500; }
+.role-badge { display: inline-block; background: var(--prodip-olive); color: white; font-size: 11px; font-weight: 700; padding: 3px 12px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 8px; }
+.data-row { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; margin-bottom: 13px; }
+.data-row .lbl { color: var(--prodip-muted); font-weight: 500; }
+.data-row .val { font-weight: 600; color: var(--prodip-text); }
+.privacy-pill { font-size: 10.5px; padding: 2px 8px; border-radius: 12px; font-weight: 600; margin-left: 6px; }
+.privacy-pill.private { background: #fee2e2; color: #991b1b; }
+.privacy-pill.public { background: #dcfce7; color: #166534; }
+.profile-footer-actions { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--prodip-border); display: flex; flex-direction: column; gap: 9px; }
+.btn-panel-link, .btn-edit-profile, .btn-signout { width: 100%; border: none; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; transition: 0.15s; }
+.btn-panel-link { background: var(--prodip-navy); color: white; }
+.btn-panel-link:hover { background: var(--prodip-navy-dark); }
+.btn-edit-profile { background: #f1f5f9; border: 1px solid var(--prodip-border); color: var(--prodip-navy); }
+.btn-edit-profile:hover { background: #e2e8f0; }
+.btn-signout { background: #fff1f2; border: 1px solid #fecdd3; color: var(--prodip-crimson); }
+.btn-signout:hover { background: #ffe4e6; }
 
-        /* ─── APP SHELL ─── */
-        .container {
-            max-width: 1400px;
-            width: 100%;
-            margin: 28px auto;
-            padding: 0 20px;
-            flex: 1;
-        }
-        .view-section { display: none; }
-        .view-section.active { display: block; animation: fadeIn 0.25s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+/* ─── CERTIFICATE ELIGIBILITY ─── */
+.cert-card { background: linear-gradient(180deg, #ffffff, #fafcf9); position: relative; overflow: hidden; }
+.cert-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--prodip-olive), var(--prodip-gold)); }
+.cert-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.cert-header h3 { font-size: 18px; color: var(--prodip-navy); font-weight: 800; display: flex; align-items: center; gap: 9px; }
+.cert-header p { font-size: 12.5px; color: var(--prodip-muted); margin-top: 2px; }
+.progress-track-wrapper { position: relative; margin: 22px 0 14px; }
+.progress-bar-wrap { width: 100%; height: 16px; background: #e2e8f0; border-radius: 30px; position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.06); }
+.progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #7B9356, #86a35d, #E5A823); border-radius: 30px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); position: relative; box-shadow: 0 0 12px rgba(229, 168, 35, 0.4); }
+.star-pin { position: absolute; top: 50%; right: -14px; transform: translateY(-50%); width: 26px; height: 26px; background: #ffffff; border: 2px solid var(--prodip-gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--prodip-gold); box-shadow: 0 0 14px #e5a823; animation: pulseGlow 1.8s infinite ease-in-out; }
+@keyframes pulseGlow { 0% { box-shadow: 0 0 8px rgba(229, 168, 35, 0.5); } 50% { box-shadow: 0 0 20px rgba(229, 168, 35, 0.95); } 100% { box-shadow: 0 0 8px rgba(229, 168, 35, 0.5); } }
+.cert-footer { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; }
 
-        /* ─── PROFILE STYLING ─── */
-        .portal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            padding-bottom: 14px;
-            border-bottom: 2px solid var(--prodip-border);
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-        .portal-header h2 { font-size: 22px; color: var(--prodip-navy); display: flex; align-items: center; gap: 10px; font-weight: 800; }
-        .profile-layout { display: grid; grid-template-columns: 360px 1fr; gap: 26px; }
-        .card {
-            background: var(--prodip-card);
-            border: 1px solid var(--prodip-border);
-            border-radius: 16px;
-            padding: 26px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.035);
-        }
-        .profile-avatar-wrap {
-            text-align: center;
-            padding-bottom: 18px;
-            margin-bottom: 18px;
-            border-bottom: 1px solid var(--prodip-border);
-        }
-        .profile-avatar {
-            width: 86px;
-            height: 86px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 36px;
-            color: var(--prodip-navy);
-            margin: 0 auto 12px;
-            border: 4px solid var(--prodip-canvas);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        }
-        .profile-name { font-size: 20px; font-weight: 800; color: var(--prodip-navy); }
-        .profile-student-id { font-size: 13.5px; color: var(--prodip-muted); margin-top: 3px; font-weight: 500; }
-        
-        .role-badge {
-            display: inline-block;
-            background: var(--prodip-olive);
-            color: white;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 3px 12px;
-            border-radius: 20px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 8px;
-        }
+/* ─── ATTENDANCE HABIT TRACKER ─── */
+.flame-pill { display: inline-flex; align-items: center; gap: 8px; background: #fef2f2; color: var(--prodip-crimson); padding: 8px 18px; border-radius: 30px; font-weight: 800; font-size: 13px; border: 1px solid #fee2e2; }
+.tracker-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 6px; }
+.tracker-head h3 { font-size: 17px; color: var(--prodip-navy); font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.tracker-head p { font-size: 12px; color: var(--prodip-muted); margin-top: 2px; }
+.habit-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(75px, 1fr)); gap: 10px; margin: 18px 0 16px; }
+.habit-node { border: 1px solid var(--prodip-border); border-radius: 12px; padding: 12px 6px; text-align: center; background: #f8fafc; }
+.habit-node .day { font-size: 10.5px; font-weight: 700; color: var(--prodip-muted); text-transform: uppercase; }
+.habit-node .date { font-size: 12.5px; font-weight: 800; margin-bottom: 8px; color: var(--prodip-text); }
+.habit-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
+.habit-node.present .habit-icon { background: #dcfce7; color: #166534; }
+.habit-node.replaced .habit-icon { background: #fef3c7; color: #b45309; }
+.legend { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 14px; font-size: 12px; color: #64748b; flex-wrap: wrap; gap: 10px; }
+.legend b { color: var(--prodip-navy); }
+.legend .dot { font-weight: 800; margin-right: 4px; }
 
-        .data-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13.5px;
-            margin-bottom: 14px;
-        }
-        .data-row .lbl { color: var(--prodip-muted); font-weight: 500; }
-        .data-row .val { font-weight: 600; color: var(--prodip-text); }
+/* ─── PUBLIC PAGES ─── */
+.hero-banner { background: linear-gradient(135deg, var(--prodip-navy), var(--prodip-navy-dark)); color: white; padding: 44px 34px; border-radius: 18px; margin-bottom: 26px; box-shadow: 0 10px 30px rgba(20, 30, 54, 0.1); position: relative; overflow: hidden; }
+.hero-banner::after { content: ''; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, rgba(229,168,35,0.18), transparent 70%); }
+.hero-banner h2 { font-size: 26px; font-weight: 800; margin-bottom: 10px; }
+.hero-banner p { font-size: 14.5px; opacity: 0.9; max-width: 680px; line-height: 1.6; }
+.section-title { font-size: 20px; color: var(--prodip-navy); margin-bottom: 16px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+.public-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 18px; }
+.activity-card { background: var(--prodip-card); border: 1px solid var(--prodip-border); border-radius: 14px; padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); line-height: 1.6; }
+.activity-card h3 { font-size: 17px; color: var(--prodip-navy); margin-bottom: 8px; }
+.activity-card p { font-size: 13.5px; color: var(--prodip-muted); }
+.empty-state { text-align: center; padding: 30px 10px; color: var(--prodip-muted); grid-column: 1/-1; }
+.empty-state b { display: block; font-size: 13.5px; color: #334155; margin-bottom: 3px; }
 
-        .privacy-pill { font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600; margin-left: 6px; }
-        .privacy-pill.private { background: #fee2e2; color: #991b1b; }
-        .privacy-pill.public { background: #dcfce7; color: #166534; }
+/* ─── MODALS (bottom sheet on mobile) ─── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(3px); z-index: 9999; justify-content: center; align-items: center; padding: 20px; }
+.modal-overlay.active { display: flex; }
+.modal { background: white; border-radius: 16px; padding: 28px; max-width: 420px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
+.modal h3 { font-size: 18px; color: var(--prodip-navy); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; font-weight: 800; }
+.modal .modal-sub { font-size: 12.5px; color: var(--prodip-muted); margin-bottom: 18px; }
+.modal .field { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
+.modal label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.3px; }
+.modal input[type="text"], .modal input[type="email"], .modal input[type="password"] { padding: 11px 12px; border: 1px solid var(--prodip-border); border-radius: 8px; font-size: 14px; outline: none; width: 100%; font-family: inherit; }
+.modal input.field-err { border-color: #dc2626; background: #fef2f2; }
+.modal input:focus { border-color: var(--prodip-navy); box-shadow: 0 0 0 3px rgba(30,44,79,0.1); }
+.field-errmsg { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #dc2626; font-weight: 600; }
+.modal-toggle-row { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--prodip-border); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.btn-modal-cancel { background: none; border: none; color: #64748b; font-size: 13px; padding: 9px 14px; cursor: pointer; border-radius: 8px; }
+.btn-modal-cancel:hover { background: #f1f5f9; }
+.btn-modal-submit { background: var(--prodip-crimson); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.btn-modal-submit:hover { background: var(--prodip-crimson-hover); }
+.btn-modal-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        .profile-footer-actions {
-            margin-top: 20px;
-            padding-top: 16px;
-            border-top: 1px solid var(--prodip-border);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .btn-panel-link {
-            width: 100%;
-            background: var(--prodip-navy);
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            text-decoration: none;
-            transition: 0.15s;
-        }
-        .btn-panel-link:hover { background: var(--prodip-navy-dark); }
-        .btn-edit-profile {
-            width: 100%;
-            background: #f1f5f9;
-            border: 1px solid var(--prodip-border);
-            color: var(--prodip-navy);
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: 0.15s;
-        }
-        .btn-edit-profile:hover { background: #e2e8f0; }
+#toast { position: fixed; bottom: 20px; right: 20px; background: var(--prodip-navy); color: white; padding: 12px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; display: none; z-index: 10000; box-shadow: 0 8px 20px rgba(0,0,0,0.2); align-items: center; gap: 8px; }
 
-        .btn-signout {
-            width: 100%;
-            background: #fff1f2;
-            border: 1px solid #fecdd3;
-            color: var(--prodip-crimson);
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: 0.15s;
-        }
-        .btn-signout:hover { background: #ffe4e6; }
-
-        /* ─── CERTIFICATE ELIGIBILITY ─── */
-        .cert-card {
-            background: linear-gradient(180deg, #ffffff, #fafcf9);
-            border: 1px solid #dbeafe;
-            position: relative;
-            overflow: hidden;
-        }
-        .cert-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--prodip-olive), var(--prodip-gold));
-        }
-        .cert-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-        .cert-header h3 {
-            font-size: 18px;
-            color: var(--prodip-navy);
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 9px;
-        }
-        .cert-header p { font-size: 12.5px; color: var(--prodip-muted); margin-top: 2px; }
-
-        .progress-track-wrapper { position: relative; margin: 24px 0 16px; padding-bottom: 12px; }
-        .progress-bar-wrap {
-            width: 100%;
-            height: 16px;
-            background: #e2e8f0;
-            border-radius: 30px;
-            position: relative;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
-        }
-        .progress-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #7B9356, #86a35d, #E5A823);
-            border-radius: 30px;
-            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            box-shadow: 0 0 12px rgba(229, 168, 35, 0.4);
-        }
-        .star-pin {
-            position: absolute;
-            top: 50%;
-            right: -14px;
-            transform: translateY(-50%);
-            width: 28px;
-            height: 28px;
-            background: #ffffff;
-            border: 2px solid var(--prodip-gold);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--prodip-gold);
-            font-size: 13px;
-            box-shadow: 0 0 14px #e5a823;
-            animation: pulseGlow 1.8s infinite ease-in-out;
-            z-index: 5;
-        }
-        @keyframes pulseGlow {
-            0% { box-shadow: 0 0 8px rgba(229, 168, 35, 0.5); }
-            50% { box-shadow: 0 0 20px rgba(229, 168, 35, 0.95); }
-            100% { box-shadow: 0 0 8px rgba(229, 168, 35, 0.5); }
-        }
-
-        /* ─── ATTENDANCE HABIT TRACKER ─── */
-        .flame-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: #fef2f2;
-            color: var(--prodip-crimson);
-            padding: 8px 18px;
-            border-radius: 30px;
-            font-weight: 800;
-            font-size: 13.5px;
-            border: 1px solid #fee2e2;
-        }
-        .habit-strip {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(75px, 1fr));
-            gap: 12px;
-            margin: 20px 0 16px;
-        }
-        .habit-node {
-            border: 1px solid var(--prodip-border);
-            border-radius: 12px;
-            padding: 12px 6px;
-            text-align: center;
-            background: #f8fafc;
-            transition: 0.2s;
-        }
-        .habit-node:hover { transform: translateY(-2px); }
-        .habit-node .day { font-size: 10.5px; font-weight: 700; color: var(--prodip-muted); text-transform: uppercase; }
-        .habit-node .date { font-size: 12.5px; font-weight: 800; margin-bottom: 8px; color: var(--prodip-text); }
-        .habit-icon {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto;
-            font-size: 14px;
-        }
-        .habit-node.present .habit-icon { background: #dcfce7; color: #166534; }
-        .habit-node.replaced .habit-icon { background: #fef3c7; color: #b45309; }
-        .habit-node.missed .habit-icon { background: #fee2e2; color: #991b1b; }
-        .habit-node.upcoming .habit-icon { background: #e2e8f0; color: #64748b; font-size: 18px; font-weight: 800; }
-
-        /* Public Pages */
-        .hero-banner {
-            background: linear-gradient(135deg, var(--prodip-navy), var(--prodip-navy-dark));
-            color: white;
-            padding: 44px 34px;
-            border-radius: 18px;
-            margin-bottom: 26px;
-            box-shadow: 0 10px 30px rgba(20, 30, 54, 0.1);
-        }
-        .hero-banner h2 { font-size: 26px; font-weight: 800; margin-bottom: 10px; }
-        .hero-banner p { font-size: 14.5px; opacity: 0.9; max-width: 680px; line-height: 1.6; }
-        .public-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 18px;
-        }
-        .activity-card {
-            background: var(--prodip-card);
-            border: 1px solid var(--prodip-border);
-            border-radius: 14px;
-            padding: 24px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-            line-height: 1.6;
-        }
-        .activity-card h3 { font-size: 17px; color: var(--prodip-navy); margin-bottom: 8px; }
-        .activity-card p { font-size: 13.5px; color: var(--prodip-muted); }
-
-        /* Modals */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(3px);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal {
-            background: white;
-            border-radius: 16px;
-            padding: 28px;
-            max-width: 440px;
-            width: 92%;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-        }
-        .modal h3 { font-size: 18px; color: var(--prodip-navy); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-        .modal .field { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
-        .modal label { font-size: 11.5px; font-weight: 700; color: var(--prodip-muted); text-transform: uppercase; }
-        .modal input[type="text"], .modal input[type="password"] {
-            padding: 10px 12px;
-            border: 1px solid var(--prodip-border);
-            border-radius: 8px;
-            font-size: 13.5px;
-            outline: none;
-            width: 100%;
-        }
-        .modal input:focus { border-color: var(--prodip-navy); }
-        .modal-toggle-row { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--prodip-border); }
-
-        #toast { position: fixed; bottom: 20px; right: 20px; background: var(--prodip-navy); color: white; padding: 10px 18px; border-radius: 6px; font-size: 13px; display: none; z-index: 10000; box-shadow: 0 4px 14px rgba(0,0,0,0.2); }
-
-        @media (max-width: 860px) {
-            .profile-layout { grid-template-columns: 1fr; }
-            .ribbon-bar { padding: 12px 16px; height: auto; flex-wrap: wrap; gap: 10px; }
-            .ribbon-nav { width: 100%; overflow-x: auto; }
-        }
-    </style>
+@media (max-width: 860px) {
+    .profile-layout { grid-template-columns: 1fr; }
+    .ribbon-bar { padding: 10px 16px; height: auto; flex-wrap: wrap; gap: 10px; }
+    .ribbon-nav { width: 100%; overflow-x: auto; }
+    .modal-overlay { align-items: flex-end; padding: 0; }
+    .modal { max-width: none; width: 100%; border-radius: 18px 18px 0 0; max-height: 85vh; padding-bottom: 26px; }
+}
+</style>
 </head>
 <body>
 
-    <!-- ─── RIBBON BAR ─── -->
-    <header class="ribbon-bar">
-        <div class="ribbon-brand" onclick="onProfileNavClick()">
-            <div class="ribbon-logo-badge" title="প্রদীপ (Prodip) Logo">
-                <img src="Prodip Logo.jpg" alt="Prodip Logo" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\'fas fa-fire\' style=\'color:var(--prodip-crimson); font-size:22px;\'></i>';" />
-            </div>
-            <div class="ribbon-title">
-                <h1>প্রদীপ (Prodip)</h1>
-                <span>স্বপ্ন বুননের একটি পথচলা · CUET</span>
-            </div>
+<header class="ribbon-bar">
+    <button class="ribbon-brand" onclick="onProfileNavClick()">
+        <div class="ribbon-logo-badge">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2C8 6 6 9 6 12.5A6 6 0 0 0 18 12.5C18 9 16 6 12 2Z" fill="#E5A823"/><rect x="10.5" y="18" width="3" height="4" rx="1" fill="#1E2C4F"/></svg>
+        </div>
+        <div class="ribbon-title">
+            <h1>প্রদীপ (Prodip)</h1>
+            <span>স্বপ্ন বুননের একটি পথচলা · CUET</span>
+        </div>
+    </button>
+
+    <nav class="ribbon-nav">
+        <button class="ribbon-link active-tab" id="tabActivities" onclick="switchTab('activitiesView')">Our Activities</button>
+        <button class="ribbon-link" id="tabAbout" onclick="switchTab('aboutView')">About Us</button>
+        <button class="ribbon-link donate-pill" id="tabDonate" onclick="switchTab('donateView')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 21s-7-4.35-9.5-8.8C.6 8.4 2.6 5 6 5c2 0 3.5 1.1 4.5 2.7C11.5 6.1 13 5 15 5c3.4 0 5.4 3.4 3.5 7.2C19 16.65 12 21 12 21Z"/></svg>
+            Donate
+        </button>
+        <button class="ribbon-link profile-highlight-pill" id="tabProfile" onclick="onProfileNavClick()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
+            My Profile
+        </button>
+    </nav>
+</header>
+
+<div class="container">
+
+    <!-- ─── 1. VOLUNTEER DASHBOARD ─── -->
+    <section id="profileView" class="view-section">
+        <div class="portal-header">
+            <h2><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--prodip-navy)" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg> Volunteer Profile &amp; Dashboard</h2>
+            <div style="font-size:12.5px; color:var(--prodip-muted);">Academic Term 2026 · Active Roster</div>
         </div>
 
-        <nav class="ribbon-nav">
-            <button class="ribbon-link active-tab" id="tabActivities" onclick="switchTab('activitiesView')">Our Activities</button>
-            <button class="ribbon-link" id="tabAbout" onclick="switchTab('aboutView')">About Us</button>
-            <button class="ribbon-link donate-pill" id="tabDonate" onclick="switchTab('donateView')">
-                <i class="fas fa-heart"></i> Donate
-            </button>
-            <!-- My Profile with login gate trigger -->
-            <button class="ribbon-link profile-highlight-pill" id="tabProfile" onclick="onProfileNavClick()">
-                <i class="fas fa-user-circle"></i> My Profile
-            </button>
-        </nav>
-    </header>
+        <div class="profile-layout">
+            <div class="card">
+                <div class="profile-avatar-wrap">
+                    <div class="profile-avatar"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--prodip-navy)" stroke-width="1.8"><circle cx="12" cy="8" r="3.6"/><path d="M4.2 20a7.8 7.8 0 0 1 15.6 0"/></svg></div>
+                    <div class="profile-name" id="profName">Loading...</div>
+                    <div class="profile-student-id">Student ID: <b id="profStudentId">...</b></div>
+                    <span class="role-badge" id="profRoleBadge">Volunteer</span>
+                </div>
 
-    <div class="container">
+                <div class="data-row"><span class="lbl">Department</span><span class="val" id="profDept">—</span></div>
+                <div class="data-row"><span class="lbl">CUET Batch</span><span class="val" id="profBatch">—</span></div>
+                <div class="data-row"><span class="lbl">Email</span><span class="val" style="font-size:11.5px;" id="profEmail">—</span></div>
 
-        <!-- ─── 1. INSTRUCTOR DASHBOARD ─── -->
-        <section id="profileView" class="view-section">
-            <div class="portal-header">
-                <h2><i class="fas fa-id-badge"></i> Volunteer Profile & Dashboard</h2>
-                <div style="font-size:12.5px; color:var(--prodip-muted);">Academic Term 2026 · Active Roster</div>
+                <div class="data-row">
+                    <span class="lbl">WhatsApp</span>
+                    <div style="text-align:right;">
+                        <span class="val" id="profPhone">—</span>
+                        <span class="privacy-pill private" id="phonePrivacyBadge">Private</span>
+                    </div>
+                </div>
+
+                <div class="data-row">
+                    <span class="lbl">Facebook</span>
+                    <div style="text-align:right;">
+                        <a href="#" target="_blank" class="val" style="color:var(--prodip-navy); text-decoration:none;" id="profFb">View Link</a>
+                        <span class="privacy-pill public" id="fbPrivacyBadge">Public</span>
+                    </div>
+                </div>
+
+                <div class="data-row" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--prodip-border);">
+                    <span class="lbl">Designated Class Days</span>
+                    <span class="val" style="color:var(--prodip-crimson);" id="profDesignatedDays">None</span>
+                </div>
+
+                <div class="profile-footer-actions">
+                    <a id="coordDeskLink" href="co-ordinator.html" class="btn-panel-link" style="display:none; background:var(--prodip-olive);">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                        Open Coordinator Desk
+                    </a>
+                    <a id="adminPanelLink" href="admin.html" class="btn-panel-link" style="display:none; background:var(--prodip-crimson);">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+                        Open Management Panel
+                    </a>
+                    <button class="btn-edit-profile" onclick="openEditProfileModal()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                        Edit Profile &amp; Privacy
+                    </button>
+                    <button class="btn-signout" onclick="handleSignOut()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+                        Sign Out
+                    </button>
+                </div>
             </div>
 
-            <div class="profile-layout">
-                <!-- Left: Profile Identity Card -->
+            <div style="display:flex; flex-direction:column; gap:20px;">
+                <div class="card cert-card">
+                    <div class="cert-header">
+                        <div>
+                            <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--prodip-gold)" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M8.5 13.5 7 22l5-3 5 3-1.5-8.5"/></svg> Certificate Eligibility</h3>
+                            <p>Progress towards formal volunteer certification (<span id="targetClassNum">20</span> classes required)</p>
+                        </div>
+                        <span class="role-badge" id="certBadge" style="background:var(--prodip-gold); color:#000; font-size:11.5px; padding:4px 12px;">In Progress</span>
+                    </div>
+                    <div class="progress-track-wrapper">
+                        <div class="progress-bar-wrap">
+                            <div class="progress-bar-fill" id="progressBarFill">
+                                <div class="star-pin"><svg width="12" height="12" viewBox="0 0 24 24" fill="var(--prodip-gold)"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9L5.7 21l1.7-7L2 9.2l7.1-.6Z"/></svg></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="cert-footer">
+                        <span id="classesCompletedLabel" style="color:var(--prodip-navy);">0 Classes Completed</span>
+                        <span id="classesRemainingLabel" style="color:var(--prodip-crimson);">0 Classes Remaining</span>
+                    </div>
+                </div>
+
                 <div class="card">
-                    <div class="profile-avatar-wrap">
-                        <div class="profile-avatar"><i class="fas fa-user-graduate"></i></div>
-                        <div class="profile-name" id="profName">Loading...</div>
-                        <div class="profile-student-id">Student ID: <b id="profStudentId">...</b></div>
-                        <span class="role-badge" id="profRoleBadge">Volunteer</span>
-                    </div>
-
-                    <div class="data-row"><span class="lbl">Department</span><span class="val" id="profDept">—</span></div>
-                    <div class="data-row"><span class="lbl">CUET Batch</span><span class="val" id="profBatch">—</span></div>
-                    <div class="data-row"><span class="lbl">Email</span><span class="val" style="font-size:11.5px;" id="profEmail">—</span></div>
-                    
-                    <div class="data-row">
-                        <span class="lbl">WhatsApp</span>
-                        <div style="text-align:right;">
-                            <span class="val" id="profPhone">—</span>
-                            <span class="privacy-pill private" id="phonePrivacyBadge">Private</span>
+                    <div class="tracker-head">
+                        <div>
+                            <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--prodip-olive)" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 3v3M16 3v3"/><path d="m9 15 2 2 4-4"/></svg> Attendance Tracker</h3>
+                            <p>Designated days: <b id="trackerDaysLabel">...</b> · Missed sessions break active streak</p>
                         </div>
+                        <div class="flame-pill"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3-3 4-3 8a3 3 0 0 0 6 0c1.5 1 2 3 2 4.5A5.5 5.5 0 0 1 6 14.5C6 9 12 8 12 2Z"/></svg> <span id="streakCount">0</span> SESSIONS ONGOING</div>
                     </div>
 
-                    <div class="data-row">
-                        <span class="lbl">Facebook</span>
-                        <div style="text-align:right;">
-                            <a href="#" target="_blank" class="val" style="color:var(--prodip-navy); text-decoration:none;" id="profFb">View Link</a>
-                            <span class="privacy-pill public" id="fbPrivacyBadge">Public</span>
+                    <div class="habit-strip" id="habitTrackerStrip">
+                        <div class="skel" style="height:78px;"></div><div class="skel" style="height:78px;"></div><div class="skel" style="height:78px;"></div><div class="skel" style="height:78px;"></div>
+                    </div>
+
+                    <div class="legend">
+                        <div>
+                            <span style="margin-right:12px;"><span class="dot" style="color:#166534;">●</span> Present</span>
+                            <span><span class="dot" style="color:#b45309;">◆</span> Replacement Credit</span>
                         </div>
-                    </div>
-
-                    <div class="data-row" style="margin-top:16px; padding-top:14px; border-top:1px solid var(--prodip-border);">
-                        <span class="lbl">Designated Class Days</span>
-                        <span class="val" style="color:var(--prodip-crimson);" id="profDesignatedDays">None</span>
-                    </div>
-
-                    <!-- Left Card Footer: Dynamic Panel Links, Edit Profile, Sign Out -->
-                    <div class="profile-footer-actions">
-                        <a id="coordDeskLink" href="co-ordination panel.html" class="btn-panel-link" style="display:none; background:var(--prodip-olive);">
-                            <i class="fas fa-clipboard-check"></i> Open Coordinator Desk
-                        </a>
-                        <a id="adminPanelLink" href="Admin Panel.html" class="btn-panel-link" style="display:none; background:var(--prodip-crimson);">
-                            <i class="fas fa-shield-alt"></i> Open Management Panel
-                        </a>
-
-                        <button class="btn-edit-profile" onclick="openEditProfileModal()">
-                            <i class="fas fa-user-edit"></i> Edit Profile & Privacy
-                        </button>
-                        <button class="btn-signout" onclick="handleSignOut()">
-                            <i class="fas fa-sign-out-alt"></i> Sign Out
-                        </button>
+                        <div>Next Class: <b id="nextClassDateLabel">Calculating...</b></div>
                     </div>
                 </div>
-
-                <!-- Right: Metrics Area -->
-                <div style="display:flex; flex-direction:column; gap:22px;">
-                    
-                    <!-- Certificate Eligibility -->
-                    <div class="card cert-card">
-                        <div class="cert-header">
-                            <div>
-                                <h3><i class="fas fa-award" style="color:var(--prodip-gold);"></i> Certificate Eligibility</h3>
-                                <p>Progress towards formal volunteer certification (<span id="targetClassNum">20</span> classes required)</p>
-                            </div>
-                            <span class="role-badge" id="certBadge" style="background:var(--prodip-gold); color:#000; font-size:11.5px; padding:4px 12px;">In Progress</span>
-                        </div>
-
-                        <div class="progress-track-wrapper">
-                            <div class="progress-bar-wrap">
-                                <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;">
-                                    <div class="star-pin" title="Current Progress Marker">
-                                        <i class="fas fa-star"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700;">
-                            <span id="classesCompletedLabel" style="color:var(--prodip-navy);">0 Classes Completed</span>
-                            <span id="classesRemainingLabel" style="color:var(--prodip-crimson);">0 Classes Remaining</span>
-                        </div>
-                    </div>
-
-                    <!-- Attendance Habit Tracker -->
-                    <div class="card">
-                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                            <div>
-                                <h3 style="font-size:17px; color:var(--prodip-navy); font-weight:800;"><i class="fas fa-calendar-check" style="color:var(--prodip-olive);"></i> Attendance Tracker</h3>
-                                <p style="font-size:12px; color:var(--prodip-muted);">Designated days: <b id="trackerDaysLabel">...</b> · Missed sessions break active streak</p>
-                            </div>
-                            <div class="flame-pill"><i class="fas fa-fire"></i> <span id="streakCount">0</span> SESSIONS ONGOING</div>
-                        </div>
-
-                        <div class="habit-strip" id="habitTrackerStrip"></div>
-
-                        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #f1f5f9; padding-top:14px; font-size:12px; color:#64748b; flex-wrap:wrap; gap:10px;">
-                            <div>
-                                <span style="margin-right:12px;"><i class="fas fa-check-circle" style="color:var(--prodip-olive);"></i> Present</span>
-                                <span style="margin-right:12px;"><i class="fas fa-exchange-alt" style="color:#b45309;"></i> Replaced</span>
-                                <span><i class="fas fa-times-circle" style="color:var(--prodip-crimson);"></i> Missed</span>
-                            </div>
-                            <div>Next Class: <b style="color:var(--prodip-navy);" id="nextClassDateLabel">Calculating...</b></div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </section>
-
-        <!-- ─── 2. OUR ACTIVITIES (LANDING DEFAULT) ─── -->
-        <section id="activitiesView" class="view-section active">
-            <div class="hero-banner">
-                <h2>একটি সময়, একটি শিশুর সুন্দর আগামী।</h2>
-                <p>আমরা সুবিধাবঞ্চিত শিশুদের মৌলিক শিক্ষা, মানবিক মূল্যবোধ ও সহশিক্ষা কার্যক্রমের মাধ্যমে স্বপ্নবান মানুষ হিসেবে গড়ে তোলার প্রত্যয়ে কাজ করছি।</p>
-            </div>
-            <h2 style="font-size: 20px; color: var(--prodip-navy); margin-bottom: 16px;"><i class="fas fa-hands-helping" style="color: var(--prodip-olive);"></i> আমাদের নিয়মিত কার্যক্রমসমূহ</h2>
-            <div class="public-grid" id="publicActivitiesContainer">
-                <div class="activity-card">
-                    <h3>নিয়মিত পাঠদান ও মেন্টরশিপ</h3>
-                    <p>সপ্তাহে নির্ধারিত দিনসমূহে শিশুদের সিলেবাসভিত্তিক পাঠদান, হোমওয়ার্ক সহায়তা ও মৌলিক দক্ষতা বৃদ্ধির নিবিড় পরিচর্যা।</p>
-                </div>
-                <div class="activity-card">
-                    <h3>বিনামূল্যে মেডিকেল ক্যাম্প</h3>
-                    <p>অভিজ্ঞ চিকিৎসক ও ইন্টার্ন চিকিৎসকদের সমন্বয়ে শিশুদের সাধারণ স্বাস্থ্য পরীক্ষা ও প্রয়োজনীয় ওষুধ বিতরণ কর্মসূচি।</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- ─── 3. ABOUT US ─── -->
-        <section id="aboutView" class="view-section">
-            <div class="card" style="line-height: 1.7; padding: 36px;">
-                <h2 style="font-size: 22px; color: var(--prodip-navy); margin-bottom: 14px;"><i class="fas fa-school" style="color: var(--prodip-crimson);"></i> আমাদের সম্পর্কে (About Us)</h2>
-                <p><b>প্রদীপ (Prodip)</b> চট্টগ্রাম প্রকৌশল ও প্রযুক্তি বিশ্ববিদ্যালয় (CUET)-এর শিক্ষার্থীদের দ্বারা পরিচালিত একটি অলাভজনক সামাজিক ও শিক্ষামূলক সংগঠন। প্রান্তিক ও সুবিধাবঞ্চিত শিশুদের শিক্ষাবিমুখতা দূর করে তাদেরকে স্বাবলম্বী নাগরিক হিসেবে গড়ে তোলার লক্ষ্যে আমরা নিয়োজিত।</p>
-            </div>
-        </section>
-
-        <!-- ─── 4. DONATE ─── -->
-        <section id="donateView" class="view-section">
-            <div class="card" style="text-align: center; max-width: 650px; margin: 0 auto; padding: 40px 24px;">
-                <div style="font-size: 38px; color: var(--prodip-crimson); margin-bottom: 14px;"><i class="fas fa-hand-holding-heart"></i></div>
-                <h2 style="font-size: 22px; color: var(--prodip-navy); margin-bottom: 10px;">প্রদীপ অনুদান তহবিল</h2>
-                <p style="font-size: 14px; color: var(--prodip-muted); margin-bottom: 24px;">আপনার সামর্থ্য অনুযায়ী সামান্য সহায়তা নিশ্চিত করতে পারে একটি শিশুর স্কুলের বেতন, খাতা-কলম ও পোশাক।</p>
-                <div style="background:#f1f5f9; padding:20px; border-radius:12px; font-size:14px; text-align:left; border:1px solid var(--prodip-border);">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                        <span style="color:#64748b;">বিকাশ / নগদ (ব্যক্তিগত):</span>
-                        <b style="color:var(--prodip-navy);">01581461058</b>
-                    </div>
-                    <div style="display:flex; justify-content:space-between;">
-                        <span style="color:#64748b;">রেফারেন্স হিসেবে দিন:</span>
-                        <b>Prodip Donation</b>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-    </div>
-
-    <!-- ─── AUTH LOGIN GATE MODAL ─── -->
-    <div class="modal-overlay" id="loginGateModal">
-        <div class="modal">
-            <h3><i class="fas fa-lock" style="color:var(--prodip-navy);"></i> Volunteer Portal Login</h3>
-            <p style="font-size:12.5px; color:var(--prodip-muted); margin-bottom:18px;">Enter your credentials to access your dashboard.</p>
-            
-            <div class="field">
-                <label>Student ID</label>
-                <input type="text" id="loginStudentIdInput" placeholder="e.g. 2411025" />
-            </div>
-
-            <div class="field">
-                <label>Password</label>
-                <input type="password" id="loginPasswordInput" placeholder="••••••••" />
-                <span style="font-size:10.5px; color:var(--prodip-muted); margin-top:3px;">Initial default: <code>prodip2026</code></span>
-            </div>
-
-            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
-                <button class="ribbon-link" style="color:#64748b; font-size:13px;" onclick="closeLoginGateModal()">Cancel</button>
-                <button class="ribbon-link donate-pill" style="margin:0; padding:9px 20px;" onclick="executeLogin()">
-                    <i class="fas fa-sign-in-alt"></i> Login
-                </button>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- ─── EDIT PROFILE & PRIVACY MODAL ─── -->
-    <div class="modal-overlay" id="editProfileModal">
-        <div class="modal">
-            <h3><i class="fas fa-user-shield" style="color:var(--prodip-navy);"></i> Edit Profile & Privacy</h3>
-            <p style="font-size:12.5px; color:var(--prodip-muted); margin-bottom:18px;">Customize contact details and visibility.</p>
-            
-            <div class="field">
-                <label>WhatsApp Number</label>
-                <input type="text" id="editPhoneInput" placeholder="01XXXXXXXXX" />
-            </div>
-            <div class="modal-toggle-row" style="margin-bottom:14px;">
-                <span style="font-size:13px; font-weight:600;">Hide WhatsApp Number</span>
-                <input type="checkbox" id="editPhonePrivateCheckbox" style="transform:scale(1.2); cursor:pointer;" />
-            </div>
+    <!-- ─── 2. OUR ACTIVITIES (LANDING DEFAULT) ─── -->
+    <section id="activitiesView" class="view-section active">
+        <div class="hero-banner">
+            <h2>একটি সময়, একটি শিশুর সুন্দর আগামী।</h2>
+            <p>আমরা সুবিধাবঞ্চিত শিশুদের মৌলিক শিক্ষা, মানবিক মূল্যবোধ ও সহশিক্ষা কার্যক্রমের মাধ্যমে স্বপ্নবান মানুষ হিসেবে গড়ে তোলার প্রত্যয়ে কাজ করছি।</p>
+        </div>
+        <h2 class="section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--prodip-olive)" stroke-width="2.2"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
+            আমাদের নিয়মিত কার্যক্রমসমূহ
+        </h2>
+        <div class="public-grid" id="publicActivitiesContainer">
+            <div class="skel" style="height:120px; border-radius:14px;"></div>
+            <div class="skel" style="height:120px; border-radius:14px;"></div>
+        </div>
+    </section>
 
-            <div class="field">
-                <label>Facebook Profile Link</label>
-                <input type="text" id="editFbInput" placeholder="https://facebook.com/..." />
-            </div>
-            <div class="modal-toggle-row" style="margin-bottom:20px;">
-                <span style="font-size:13px; font-weight:600;">Hide Facebook Profile Link</span>
-                <input type="checkbox" id="editFbPrivateCheckbox" style="transform:scale(1.2); cursor:pointer;" />
-            </div>
+    <!-- ─── 3. ABOUT US ─── -->
+    <section id="aboutView" class="view-section">
+        <div class="card" style="line-height: 1.7; padding: 36px;">
+            <h2 style="font-size: 22px; color: var(--prodip-navy); margin-bottom: 14px; display:flex; align-items:center; gap:10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--prodip-crimson)" stroke-width="2"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/></svg> আমাদের সম্পর্কে (About Us)</h2>
+            <p><b>প্রদীপ (Prodip)</b> চট্টগ্রাম প্রকৌশল ও প্রযুক্তি বিশ্ববিদ্যালয় (CUET)-এর শিক্ষার্থীদের দ্বারা পরিচালিত একটি অলাভজনক সামাজিক ও শিক্ষামূলক সংগঠন। প্রান্তিক ও সুবিধাবঞ্চিত শিশুদের শিক্ষাবিমুখতা দূর করে তাদেরকে স্বাবলম্বী নাগরিক হিসেবে গড়ে তোলার লক্ষ্যে আমরা নিয়োজিত।</p>
+        </div>
+    </section>
 
-            <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button class="ribbon-link" style="color:#64748b; font-size:13px;" onclick="closeEditProfileModal()">Cancel</button>
-                <button class="ribbon-link donate-pill" style="margin:0; padding:9px 20px;" onclick="saveProfileChanges()">
-                    <i class="fas fa-save"></i> Save & Sync
-                </button>
+    <!-- ─── 4. DONATE ─── -->
+    <section id="donateView" class="view-section">
+        <div class="card" style="text-align: center; max-width: 650px; margin: 0 auto; padding: 40px 24px;">
+            <div style="color: var(--prodip-crimson); margin-bottom: 14px;"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-4.35-9.5-8.8C.6 8.4 2.6 5 6 5c2 0 3.5 1.1 4.5 2.7C11.5 6.1 13 5 15 5c3.4 0 5.4 3.4 3.5 7.2C19 16.65 12 21 12 21Z"/></svg></div>
+            <h2 style="font-size: 22px; color: var(--prodip-navy); margin-bottom: 10px;">প্রদীপ অনুদান তহবিল</h2>
+            <p style="font-size: 14px; color: var(--prodip-muted); margin-bottom: 24px;">আপনার সামর্থ্য অনুযায়ী সামান্য সহায়তা নিশ্চিত করতে পারে একটি শিশুর স্কুলের বেতন, খাতা-কলম ও পোশাক।</p>
+            <div style="background:#f1f5f9; padding:20px; border-radius:12px; font-size:14px; text-align:left; border:1px solid var(--prodip-border);">
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                    <span style="color:#64748b;">বিকাশ / নগদ (ব্যক্তিগত):</span>
+                    <b style="color:var(--prodip-navy);">01581461058</b>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                    <span style="color:#64748b;">রেফারেন্স হিসেবে দিন:</span>
+                    <b>Prodip Donation</b>
+                </div>
             </div>
         </div>
+    </section>
+
+</div>
+
+<!-- ─── AUTH LOGIN GATE MODAL ─── -->
+<div class="modal-overlay" id="loginGateModal">
+    <div class="modal">
+        <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--prodip-navy)" stroke-width="2.2"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Volunteer Portal Login</h3>
+        <p class="modal-sub">Sign in with your registered email to access your dashboard.</p>
+
+        <div class="field">
+            <label>Email</label>
+            <input type="email" id="loginEmailInput" placeholder="you@cuet.ac.bd" autocomplete="username" />
+        </div>
+        <div class="field">
+            <label>Password</label>
+            <input type="password" id="loginPasswordInput" placeholder="••••••••" autocomplete="current-password" />
+            <span id="loginErrorMsg" class="field-errmsg" style="display:none;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+                <span id="loginErrorText"></span>
+            </span>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-modal-cancel" onclick="closeLoginGateModal()">Cancel</button>
+            <button class="btn-modal-submit" id="loginSubmitBtn" onclick="executeLogin()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+                Log In
+            </button>
+        </div>
     </div>
+</div>
 
-    <div id="toast"></div>
+<!-- ─── EDIT PROFILE & PRIVACY MODAL ─── -->
+<div class="modal-overlay" id="editProfileModal">
+    <div class="modal">
+        <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--prodip-navy)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg> Edit Profile &amp; Privacy</h3>
+        <p class="modal-sub">Customize contact details and visibility.</p>
 
-    <script>
-        (function() {
-            // ─── LIVE SUPABASE INITIALIZATION ───
-            const SUPABASE_URL = 'https://knslzwpmtoealtylyquz.supabase.co';
-            const SUPABASE_ANON_KEY = 'sb_publishable_5cE65J23A-wlYAwSGQXy8g_1mduc4lT';
-            const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        <div class="field">
+            <label>WhatsApp Number</label>
+            <input type="text" id="editPhoneInput" placeholder="01XXXXXXXXX" />
+        </div>
+        <div class="modal-toggle-row" style="margin-bottom:16px;">
+            <span style="font-size:13px; font-weight:600;">Hide WhatsApp Number</span>
+            <input type="checkbox" id="editPhonePrivateCheckbox" style="transform:scale(1.2); cursor:pointer;" />
+        </div>
 
-            let allRoles = [];
-            let activeVolunteer = null;
+        <div class="field">
+            <label>Facebook Profile Link</label>
+            <input type="text" id="editFbInput" placeholder="https://facebook.com/..." />
+        </div>
+        <div class="modal-toggle-row" style="margin-bottom:6px;">
+            <span style="font-size:13px; font-weight:600;">Hide Facebook Profile Link</span>
+            <input type="checkbox" id="editFbPrivateCheckbox" style="transform:scale(1.2); cursor:pointer;" />
+        </div>
 
-            // Navigation Switching
-            window.switchTab = function(tabId) {
-                document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-                document.getElementById(tabId).classList.add('active');
+        <div class="modal-actions">
+            <button class="btn-modal-cancel" onclick="closeEditProfileModal()">Cancel</button>
+            <button class="btn-modal-submit" onclick="saveProfileChanges()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>
+                Save &amp; Sync
+            </button>
+        </div>
+    </div>
+</div>
 
-                document.querySelectorAll('.ribbon-nav .ribbon-link').forEach(el => el.classList.remove('active-tab'));
-                if (tabId === 'profileView') document.getElementById('tabProfile').classList.add('active-tab');
-                if (tabId === 'activitiesView') document.getElementById('tabActivities').classList.add('active-tab');
-                if (tabId === 'aboutView') document.getElementById('tabAbout').classList.add('active-tab');
-                if (tabId === 'donateView') document.getElementById('tabDonate').classList.add('active-tab');
-            };
+<div id="toast"></div>
 
-            // ─── LOGIN GATE INTERCEPTION ───
-            window.onProfileNavClick = function() {
-                const sessionStudentId = localStorage.getItem('prodip_session_student_id');
-                if (sessionStudentId) {
-                    // Already logged in
-                    loadVolunteerSession(sessionStudentId);
-                    switchTab('profileView');
-                } else {
-                    // Trigger authentication prompt
-                    document.getElementById('loginStudentIdInput').value = '';
-                    document.getElementById('loginPasswordInput').value = '';
-                    document.getElementById('loginGateModal').classList.add('active');
-                }
-            };
+<script>
+(function() {
+    const sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
 
-            window.closeLoginGateModal = function() {
-                document.getElementById('loginGateModal').classList.remove('active');
-            };
+    let allRoles = [];
+    let activeVolunteer = null;
 
-            window.executeLogin = async function() {
-                const sId = document.getElementById('loginStudentIdInput').value.trim();
-                const pwd = document.getElementById('loginPasswordInput').value.trim();
+    window.switchTab = function(tabId) {
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
 
-                if (!sId || !pwd) {
-                    return alert('Please enter both Student ID and Password.');
-                }
+        document.querySelectorAll('.ribbon-nav .ribbon-link').forEach(el => el.classList.remove('active-tab'));
+        if (tabId === 'profileView') document.getElementById('tabProfile').classList.add('active-tab');
+        if (tabId === 'activitiesView') document.getElementById('tabActivities').classList.add('active-tab');
+        if (tabId === 'aboutView') document.getElementById('tabAbout').classList.add('active-tab');
+        if (tabId === 'donateView') document.getElementById('tabDonate').classList.add('active-tab');
+    };
 
-                // Temporary verification check (Default password for all registered volunteers is 'prodip2026')
-                if (pwd !== 'prodip2026') {
-                    return alert('Invalid password. Default access is: prodip2026');
-                }
+    // ─── LOGIN GATE ───
+    window.onProfileNavClick = async function() {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session) {
+            await loadVolunteerSession();
+            switchTab('profileView');
+        } else {
+            document.getElementById('loginEmailInput').value = '';
+            document.getElementById('loginPasswordInput').value = '';
+            setLoginError(null);
+            document.getElementById('loginGateModal').classList.add('active');
+        }
+    };
 
-                // Verify user exists in Supabase
-                const { data, error } = await sb.from('volunteers').select('*').eq('student_id', sId).single();
+    window.closeLoginGateModal = function() {
+        document.getElementById('loginGateModal').classList.remove('active');
+    };
 
-                if (error || !data) {
-                    return alert('Student ID not recognized on the roster. Please check with an Admin.');
-                }
+    function setLoginError(msg) {
+        const box = document.getElementById('loginErrorMsg');
+        const input = document.getElementById('loginPasswordInput');
+        if (msg) {
+            document.getElementById('loginErrorText').textContent = msg;
+            box.style.display = 'flex';
+            input.classList.add('field-err');
+        } else {
+            box.style.display = 'none';
+            input.classList.remove('field-err');
+        }
+    }
 
-                // Login successful -> Save persistent session
-                localStorage.setItem('prodip_session_student_id', sId);
-                activeVolunteer = data;
-                closeLoginGateModal();
-                showToast(`Welcome, ${activeVolunteer.full_name}!`);
+    window.executeLogin = async function() {
+        const email = document.getElementById('loginEmailInput').value.trim();
+        const pwd = document.getElementById('loginPasswordInput').value;
+        if (!email || !pwd) return setLoginError('Please enter both email and password.');
 
-                await renderVolunteerDashboard();
-                switchTab('profileView');
-            };
+        const btn = document.getElementById('loginSubmitBtn');
+        btn.disabled = true;
 
-            window.handleSignOut = function() {
-                if (confirm('Are you sure you want to sign out?')) {
-                    localStorage.removeItem('prodip_session_student_id');
+        const { error } = await sb.auth.signInWithPassword({ email, password: pwd });
+        btn.disabled = false;
+
+        if (error) {
+            return setLoginError('Incorrect email or password. Try again.');
+        }
+
+        closeLoginGateModal();
+        await loadVolunteerSession();
+        showToast(`Welcome, ${activeVolunteer ? activeVolunteer.full_name : 'back'}!`);
+        switchTab('profileView');
+    };
+
+    window.handleSignOut = async function() {
+        if (!confirm('Are you sure you want to sign out?')) return;
+        await sb.auth.signOut();
+        activeVolunteer = null;
+        showToast('Signed out successfully.');
+        switchTab('activitiesView');
+    };
+
+    async function loadVolunteerSession() {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) { activeVolunteer = null; return; }
+
+        const { data, error } = await sb.from('volunteers').select('*').eq('auth_user_id', session.user.id).single();
+        if (error || !data) {
+            activeVolunteer = null;
+            return;
+        }
+        activeVolunteer = data;
+        await renderVolunteerDashboard();
+    }
+
+    function calculateNextClassDate(daysArray) {
+        if (!daysArray || daysArray.length === 0) return 'None designated';
+        const dayMap = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
+        const today = new Date();
+        const currentDayIdx = today.getDay();
+
+        const targetDayIndices = daysArray.map(d => dayMap[d]).filter(d => d !== undefined).sort((a,b) => a - b);
+        if (targetDayIndices.length === 0) return 'None designated';
+
+        let nextDayIdx = targetDayIndices.find(d => d > currentDayIdx);
+        let daysAhead;
+        if (nextDayIdx !== undefined) {
+            daysAhead = nextDayIdx - currentDayIdx;
+        } else {
+            nextDayIdx = targetDayIndices[0];
+            daysAhead = (7 - currentDayIdx) + nextDayIdx;
+        }
+
+        const nextDate = new Date();
+        nextDate.setDate(today.getDate() + daysAhead);
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const dayName = Object.keys(dayMap).find(k => dayMap[k] === nextDayIdx);
+        return `${dayName}, ${String(nextDate.getDate()).padStart(2, '0')}-${months[nextDate.getMonth()]}-${nextDate.getFullYear()}`;
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg> ${msg}`;
+        t.style.display = 'flex';
+        setTimeout(() => t.style.display = 'none', 2600);
+    }
+
+    async function renderVolunteerDashboard() {
+        if (!activeVolunteer) return;
+
+        document.getElementById('profName').textContent = activeVolunteer.full_name;
+        document.getElementById('profStudentId').textContent = activeVolunteer.student_id;
+        document.getElementById('profDept').textContent = activeVolunteer.department || '—';
+        document.getElementById('profBatch').textContent = activeVolunteer.batch || '—';
+        document.getElementById('profEmail').textContent = activeVolunteer.email || '—';
+
+        document.getElementById('profPhone').textContent = activeVolunteer.phone || 'Not provided';
+        const phoneBadge = document.getElementById('phonePrivacyBadge');
+        phoneBadge.textContent = activeVolunteer.phone_is_public ? 'Public' : 'Private';
+        phoneBadge.className = `privacy-pill ${activeVolunteer.phone_is_public ? 'public' : 'private'}`;
+
+        const fbLink = document.getElementById('profFb');
+        if (activeVolunteer.fb_profile_url) {
+            fbLink.href = activeVolunteer.fb_profile_url;
+            fbLink.textContent = 'View Link';
+        } else {
+            fbLink.textContent = 'None';
+            fbLink.removeAttribute('href');
+        }
+        const fbBadge = document.getElementById('fbPrivacyBadge');
+        fbBadge.textContent = activeVolunteer.fb_is_public ? 'Public' : 'Private';
+        fbBadge.className = `privacy-pill ${activeVolunteer.fb_is_public ? 'public' : 'private'}`;
+
+        const userRole = allRoles.find(r => r.level === activeVolunteer.role_level) || { name: 'Volunteer', level: 1 };
+        document.getElementById('profRoleBadge').textContent = userRole.name;
+
+        document.getElementById('coordDeskLink').style.display = (userRole.level >= 3) ? 'flex' : 'none';
+        document.getElementById('adminPanelLink').style.display = (userRole.level >= 6) ? 'flex' : 'none';
+
+        const days = activeVolunteer.designated_days || [];
+        const daysFormatted = days.length > 0 ? days.join(', ') : 'None';
+        document.getElementById('profDesignatedDays').textContent = daysFormatted;
+        document.getElementById('trackerDaysLabel').textContent = daysFormatted;
+        document.getElementById('nextClassDateLabel').textContent = calculateNextClassDate(days);
+
+        const { data: logs } = await sb
+            .from('attendance_logs')
+            .select('*')
+            .eq('credited_to_id', activeVolunteer.student_id)
+            .eq('status', 'Approved')
+            .order('session_date', { ascending: false });
+
+        const approvedLogs = logs || [];
+        const completedCount = approvedLogs.length;
+        const target = activeVolunteer.target_classes || 20;
+        const pct = Math.min(100, Math.round((completedCount / target) * 100));
+
+        document.getElementById('targetClassNum').textContent = target;
+        document.getElementById('classesCompletedLabel').textContent = `${completedCount} Classes Completed`;
+        document.getElementById('classesRemainingLabel').textContent = `${Math.max(0, target - completedCount)} Classes Remaining (${pct}%)`;
+        setTimeout(() => { document.getElementById('progressBarFill').style.width = `${pct}%`; }, 100);
+
+        const certBadge = document.getElementById('certBadge');
+        if (completedCount >= target) {
+            certBadge.textContent = 'Eligible for Certificate';
+            certBadge.style.background = 'var(--prodip-olive)'; certBadge.style.color = '#fff';
+        } else {
+            certBadge.textContent = 'In Progress';
+            certBadge.style.background = 'var(--prodip-gold)'; certBadge.style.color = '#000';
+        }
+
+        document.getElementById('streakCount').textContent = completedCount;
+        renderHabitStrip(approvedLogs);
+    }
+
+    function renderHabitStrip(logs) {
+        const strip = document.getElementById('habitTrackerStrip');
+        if (logs.length === 0) {
+            strip.innerHTML = `<div class="empty-state" style="padding:14px;">
+                <b>No approved sessions yet</b>
+                Once a coordinator logs and the Master Admin approves a session, it shows up here.
+            </div>`;
+            return;
+        }
+        const recentLogs = logs.slice(0, 7);
+        strip.innerHTML = recentLogs.map(item => {
+            const wasReplacement = item.instructor_id !== item.credited_to_id;
+            const icon = wasReplacement
+                ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m17 2 4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>'
+                : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>';
+            return `<div class="habit-node ${wasReplacement ? 'replaced' : 'present'}">
+                <div class="day">${(item.day_of_week || '').substring(0,3)}</div>
+                <div class="date">${item.session_date.substring(5)}</div>
+                <div class="habit-icon">${icon}</div>
+            </div>`;
+        }).join('');
+    }
+
+    // ─── PUBLIC ACTIVITIES ───
+    async function loadPublicActivities() {
+        const wrap = document.getElementById('publicActivitiesContainer');
+        const { data, error } = await sb.from('activities').select('*').eq('status', 'Active').order('title');
+        if (error || !data || data.length === 0) {
+            wrap.innerHTML = `<div class="empty-state">
+                <b>No activities published yet</b>
+                Check back soon, or ask the Master Admin to add one.
+            </div>`;
+            return;
+        }
+        wrap.innerHTML = data.map(a => `
+            <div class="activity-card">
+                <h3>${a.title}</h3>
+                <p>${a.notes || ''}</p>
+            </div>
+        `).join('');
+    }
+
+    // ─── EDIT PROFILE ───
+    window.openEditProfileModal = function() {
+        if (!activeVolunteer) return;
+        document.getElementById('editPhoneInput').value = activeVolunteer.phone || '';
+        document.getElementById('editPhonePrivateCheckbox').checked = !activeVolunteer.phone_is_public;
+        document.getElementById('editFbInput').value = activeVolunteer.fb_profile_url || '';
+        document.getElementById('editFbPrivateCheckbox').checked = !activeVolunteer.fb_is_public;
+        document.getElementById('editProfileModal').classList.add('active');
+    };
+
+    window.closeEditProfileModal = function() {
+        document.getElementById('editProfileModal').classList.remove('active');
+    };
+
+    window.saveProfileChanges = async function() {
+        const updatedPhone = document.getElementById('editPhoneInput').value.trim();
+        const updatedFb = document.getElementById('editFbInput').value.trim();
+        const isPhonePrivate = document.getElementById('editPhonePrivateCheckbox').checked;
+        const isFbPrivate = document.getElementById('editFbPrivateCheckbox').checked;
+
+        const { error } = await sb.from('volunteers').update({
+            phone: updatedPhone,
+            fb_profile_url: updatedFb,
+            phone_is_public: !isPhonePrivate,
+            fb_is_public: !isFbPrivate
+        }).eq('id', activeVolunteer.id);
+
+        if (error) return alert('Failed to save changes: ' + error.message);
+
+        activeVolunteer.phone = updatedPhone;
+        activeVolunteer.fb_profile_url = updatedFb;
+        activeVolunteer.phone_is_public = !isPhonePrivate;
+        activeVolunteer.fb_is_public = !isFbPrivate;
+
+        renderVolunteerDashboard();
+        closeEditProfileModal();
+        showToast('Profile and privacy updated!');
+    };
+
+    async function initCloudApp() {
+        try {
+            const { data: roles } = await sb.from('roles').select('*').order('level');
+            allRoles = roles || [];
+            await loadPublicActivities();
+
+            const { data: { session } } = await sb.auth.getSession();
+            if (session) await loadVolunteerSession();
+
+            sb.auth.onAuthStateChange((event) => {
+                if (event === 'SIGNED_OUT') {
                     activeVolunteer = null;
-                    showToast('Signed out successfully.');
                     switchTab('activitiesView');
                 }
-            };
+            });
+        } catch (err) {
+            console.error('Initialization error:', err);
+        }
+    }
 
-            async function loadVolunteerSession(sId) {
-                const { data, error } = await sb.from('volunteers').select('*').eq('student_id', sId).single();
-                if (data) {
-                    activeVolunteer = data;
-                    await renderVolunteerDashboard();
-                } else {
-                    localStorage.removeItem('prodip_session_student_id');
-                    switchTab('activitiesView');
-                }
-            }
-
-            function calculateNextClassDate(daysArray) {
-                if (!daysArray || daysArray.length === 0) return 'None designated';
-                const dayMap = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
-                const today = new Date();
-                const currentDayIdx = today.getDay();
-                
-                const targetDayIndices = daysArray.map(d => dayMap[d]).filter(d => d !== undefined).sort((a,b) => a - b);
-                if (targetDayIndices.length === 0) return 'None designated';
-
-                let nextDayIdx = targetDayIndices.find(d => d > currentDayIdx);
-                let daysAhead = 0;
-
-                if (nextDayIdx !== undefined) {
-                    daysAhead = nextDayIdx - currentDayIdx;
-                } else {
-                    nextDayIdx = targetDayIndices[0];
-                    daysAhead = (7 - currentDayIdx) + nextDayIdx;
-                }
-
-                const nextDate = new Date();
-                nextDate.setDate(today.getDate() + daysAhead);
-
-                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                const dayName = Object.keys(dayMap).find(k => dayMap[k] === nextDayIdx);
-                return `${dayName}, ${String(nextDate.getDate()).padStart(2, '0')}-${months[nextDate.getMonth()]}-${nextDate.getFullYear()}`;
-            }
-
-            function showToast(msg) {
-                const t = document.getElementById('toast');
-                t.textContent = msg;
-                t.style.display = 'block';
-                setTimeout(() => t.style.display = 'none', 2400);
-            }
-
-            async function renderVolunteerDashboard() {
-                if (!activeVolunteer) return;
-
-                document.getElementById('profName').textContent = activeVolunteer.full_name;
-                document.getElementById('profStudentId').textContent = activeVolunteer.student_id;
-                document.getElementById('profDept').textContent = activeVolunteer.department || '—';
-                document.getElementById('profBatch').textContent = activeVolunteer.batch || '—';
-                document.getElementById('profEmail').textContent = activeVolunteer.email || `${activeVolunteer.student_id}@student.cuet.ac.bd`;
-                
-                document.getElementById('profPhone').textContent = activeVolunteer.phone || 'Not provided';
-                const phoneBadge = document.getElementById('phonePrivacyBadge');
-                phoneBadge.textContent = activeVolunteer.phone_is_public ? 'Public' : 'Private';
-                phoneBadge.className = `privacy-pill ${activeVolunteer.phone_is_public ? 'public' : 'private'}`;
-
-                const fbLink = document.getElementById('profFb');
-                if (activeVolunteer.fb_profile_url) {
-                    fbLink.href = activeVolunteer.fb_profile_url;
-                    fbLink.textContent = 'View Link';
-                    fbLink.style.display = 'inline';
-                } else {
-                    fbLink.textContent = 'None';
-                    fbLink.removeAttribute('href');
-                }
-                const fbBadge = document.getElementById('fbPrivacyBadge');
-                fbBadge.textContent = activeVolunteer.fb_is_public ? 'Public' : 'Private';
-                fbBadge.className = `privacy-pill ${activeVolunteer.fb_is_public ? 'public' : 'private'}`;
-
-                // Role & Navigation Permission Links
-                const userRole = allRoles.find(r => r.level === activeVolunteer.role_level) || { name: 'Volunteer', level: 1 };
-                const roleBadge = document.getElementById('profRoleBadge');
-                roleBadge.textContent = userRole.name;
-
-                const coordBtn = document.getElementById('coordDeskLink');
-                const adminBtn = document.getElementById('adminPanelLink');
-                
-                // Show Coordinator link for level 3+
-                coordBtn.style.display = (userRole.level >= 3) ? 'flex' : 'none';
-                // Show Admin link for level 6
-                adminBtn.style.display = (userRole.level >= 6) ? 'flex' : 'none';
-
-                // Designated Days
-                const days = activeVolunteer.designated_days || [];
-                const daysFormatted = days.length > 0 ? days.join(', ') : 'None';
-                document.getElementById('profDesignatedDays').textContent = daysFormatted;
-                document.getElementById('trackerDaysLabel').textContent = daysFormatted;
-                document.getElementById('nextClassDateLabel').textContent = calculateNextClassDate(days);
-
-                // Fetch Real Attendance Records from Supabase
-                const { data: logs } = await sb
-                    .from('attendance_logs')
-                    .select('*')
-                    .eq('credited_to_id', activeVolunteer.student_id)
-                    .eq('status', 'Approved')
-                    .order('session_date', { ascending: false });
-
-                const approvedLogs = logs || [];
-                
-                // 1. Certificate Meter
-                const completedCount = approvedLogs.length;
-                const target = activeVolunteer.target_classes || 20;
-                const pct = Math.min(100, Math.round((completedCount / target) * 100));
-
-                document.getElementById('targetClassNum').textContent = target;
-                document.getElementById('classesCompletedLabel').textContent = `${completedCount} Classes Completed`;
-                document.getElementById('classesRemainingLabel').textContent = `${Math.max(0, target - completedCount)} Classes Remaining (${pct}%)`;
-                
-                setTimeout(() => {
-                    document.getElementById('progressBarFill').style.width = `${pct}%`;
-                }, 100);
-
-                const certBadge = document.getElementById('certBadge');
-                if (completedCount >= target) {
-                    certBadge.textContent = 'Eligible for Certificate';
-                    certBadge.style.background = 'var(--prodip-olive)';
-                    certBadge.style.color = '#fff';
-                } else {
-                    certBadge.textContent = 'In Progress';
-                    certBadge.style.background = 'var(--prodip-gold)';
-                    certBadge.style.color = '#000';
-                }
-
-                // 2. Attendance Streak & Habit Strip
-                document.getElementById('streakCount').textContent = completedCount;
-                renderHabitStrip(approvedLogs, days);
-            }
-
-            function renderHabitStrip(logs, designatedDays) {
-                const strip = document.getElementById('habitTrackerStrip');
-                strip.innerHTML = '';
-
-                if (logs.length === 0) {
-                    strip.innerHTML = '<div style="grid-column: 1/-1; color:#94a3b8; font-size:12px; padding:10px;">No completed attendance records on file yet.</div>';
-                    return;
-                }
-
-                const recentLogs = logs.slice(0, 7);
-                recentLogs.forEach(item => {
-                    const node = document.createElement('div');
-                    node.className = 'habit-node present';
-                    node.innerHTML = `
-                        <div class="day">${(item.day_of_week || '').substring(0,3)}</div>
-                        <div class="date">${item.session_date.substring(5)}</div>
-                        <div class="habit-icon"><i class="fas fa-check"></i></div>
-                    `;
-                    strip.appendChild(node);
-                });
-            }
-
-            // Edit Profile Modal
-            window.openEditProfileModal = function() {
-                if (!activeVolunteer) return;
-                document.getElementById('editPhoneInput').value = activeVolunteer.phone || '';
-                document.getElementById('editPhonePrivateCheckbox').checked = !activeVolunteer.phone_is_public;
-                document.getElementById('editFbInput').value = activeVolunteer.fb_profile_url || '';
-                document.getElementById('editFbPrivateCheckbox').checked = !activeVolunteer.fb_is_public;
-                document.getElementById('editProfileModal').classList.add('active');
-            };
-
-            window.closeEditProfileModal = function() {
-                document.getElementById('editProfileModal').classList.remove('active');
-            };
-
-            window.saveProfileChanges = async function() {
-                const updatedPhone = document.getElementById('editPhoneInput').value.trim();
-                const updatedFb = document.getElementById('editFbInput').value.trim();
-                const isPhonePrivate = document.getElementById('editPhonePrivateCheckbox').checked;
-                const isFbPrivate = document.getElementById('editFbPrivateCheckbox').checked;
-
-                const { error } = await sb
-                    .from('volunteers')
-                    .update({
-                        phone: updatedPhone,
-                        fb_profile_url: updatedFb,
-                        phone_is_public: !isPhonePrivate,
-                        fb_is_public: !isFbPrivate
-                    })
-                    .eq('student_id', activeVolunteer.student_id);
-
-                if (error) {
-                    return alert("Failed to save changes: " + error.message);
-                }
-
-                activeVolunteer.phone = updatedPhone;
-                activeVolunteer.fb_profile_url = updatedFb;
-                activeVolunteer.phone_is_public = !isPhonePrivate;
-                activeVolunteer.fb_is_public = !isFbPrivate;
-
-                renderVolunteerDashboard();
-                closeEditProfileModal();
-                showToast('Profile and privacy updated in Supabase cloud!');
-            };
-
-            async function initCloudApp() {
-                try {
-                    const { data: roles } = await sb.from('roles').select('*').order('level');
-                    allRoles = roles || [];
-
-                    // Auto-restore session if previously authenticated
-                    const sessionStudentId = localStorage.getItem('prodip_session_student_id');
-                    if (sessionStudentId) {
-                        loadVolunteerSession(sessionStudentId);
-                    }
-                } catch (err) {
-                    console.error("Initialization error:", err);
-                }
-            }
-
-            initCloudApp();
-        })();
-    </script>
+    initCloudApp();
+})();
+</script>
 </body>
 </html>

@@ -1,921 +1,690 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>প্রদীপ Management Panel · Master Admin</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root {
-            --prodip-navy: #1E2C4F;
-            --prodip-navy-dark: #141E36;
-            --prodip-crimson: #8E1B32;
-            --prodip-olive: #7B9356;
-            --prodip-gold: #E5A823;
-            --prodip-canvas: #F8FAFC;
-            --prodip-card: #FFFFFF;
-            --prodip-text: #0F172A;
-            --prodip-muted: #64748B;
-            --prodip-border: #E2E8F0;
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>প্রদীপ Management Panel · Master Admin</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<style>
+:root {
+    --navy:#1E2C4F; --navy-dark:#141E36; --crimson:#8E1B32; --olive:#7B9356; --gold:#E5A823;
+    --canvas:#F8FAFC; --card:#FFFFFF; --text:#0F172A; --muted:#64748B; --border:#E2E8F0;
+}
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',system-ui,sans-serif; }
+body { background:var(--canvas); color:var(--text); min-height:100vh; display:flex; flex-direction:column; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+button { font: inherit; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:translateY(0);} }
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+.skel { background: linear-gradient(90deg,#eef1f4 25%,#f6f8fa 37%,#eef1f4 63%); background-size: 400% 100%; animation: shimmer 1.4s ease-in-out infinite; border-radius: 4px; height:13px; }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-        body { background: var(--prodip-canvas); color: var(--prodip-text); min-height: 100vh; display: flex; flex-direction: column; }
+/* ─── LOGIN LOCK ─── */
+#adminLockScreen { position:fixed; inset:0; background:radial-gradient(circle at center, #1e293b, var(--navy-dark)); display:flex; align-items:center; justify-content:center; z-index:99999; padding:20px; }
+.lock-box { background:white; border-radius:16px; padding:34px 28px; max-width:400px; width:100%; box-shadow:0 25px 50px -12px rgba(0,0,0,0.4); text-align:center; }
+.lock-badge { width:60px; height:60px; border-radius:50%; background:#fee2e2; color:var(--crimson); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; }
+.lock-box h2 { font-size:20px; color:var(--navy); margin-bottom:6px; font-weight:800; }
+.lock-box p { font-size:13px; color:var(--muted); margin-bottom:22px; }
+.lock-field { text-align:left; margin-bottom:14px; }
+.lock-field label { font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; display:block; margin-bottom:5px; }
+.lock-field input { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; outline:none; font-family:inherit; }
+.lock-field input.field-err { border-color:#dc2626; background:#fef2f2; }
+.lock-field input:focus { border-color:var(--navy); }
+.field-errmsg { display:flex; align-items:center; gap:6px; font-size:11.5px; color:#dc2626; font-weight:600; margin-top:6px; }
+.btn-lock-submit { width:100%; background:var(--crimson); color:white; border:none; padding:12px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; margin-top:18px; }
+.btn-lock-submit:hover { background:#731326; }
+.btn-lock-submit:disabled { opacity:0.6; cursor:not-allowed; }
+.lock-return { margin-top:14px; display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:#64748b; text-decoration:none; }
+.lock-return:hover { text-decoration:underline; color:var(--navy); }
 
-        /* ─── FULL-SCREEN ADMIN LOGIN LOCK ─── */
-        #adminLockScreen {
-            position: fixed;
-            inset: 0;
-            background: radial-gradient(circle at center, #1e293b, var(--prodip-navy-dark));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 99999;
-            padding: 20px;
-        }
-        .lock-box {
-            background: white;
-            border-radius: 16px;
-            padding: 34px 28px;
-            max-width: 400px;
-            width: 100%;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-            text-align: center;
-        }
-        .lock-badge {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: #fee2e2;
-            color: var(--prodip-crimson);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            margin: 0 auto 16px;
-        }
-        .lock-box h2 { font-size: 20px; color: var(--prodip-navy); margin-bottom: 6px; }
-        .lock-box p { font-size: 13px; color: var(--prodip-muted); margin-bottom: 22px; }
-        .lock-field { text-align: left; margin-bottom: 14px; }
-        .lock-field label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; display: block; margin-bottom: 5px; }
-        .lock-field input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--prodip-border);
-            border-radius: 8px;
-            font-size: 14px;
-            outline: none;
-        }
-        .lock-field input:focus { border-color: var(--prodip-navy); }
-        .btn-lock-submit {
-            width: 100%;
-            background: var(--prodip-crimson);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 18px;
-        }
-        .btn-lock-submit:hover { background: #731326; }
-        .lock-return {
-            margin-top: 14px;
-            font-size: 12.5px;
-            color: #64748b;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .lock-return:hover { text-decoration: underline; color: var(--prodip-navy); }
+/* ─── APP SHELL ─── */
+#adminAppContainer { display:none; flex-direction:column; min-height:100vh; }
+.ribbon-bar { background:var(--navy); color:white; padding:0 28px; display:flex; align-items:center; justify-content:space-between; height:66px; position:sticky; top:0; z-index:1000; box-shadow:0 4px 12px rgba(0,0,0,0.1); flex-wrap:wrap; gap:10px; }
+.ribbon-brand { display:flex; align-items:center; gap:12px; }
+.ribbon-brand h1 { font-size:18px; font-weight:800; }
+.ribbon-brand span { font-size:11px; opacity:0.8; }
+.nav-links { display:flex; gap:6px; flex-wrap:wrap; }
+.nav-link { color:#cbd5e1; padding:8px 13px; border-radius:6px; font-size:12.5px; font-weight:600; text-decoration:none; border:none; background:transparent; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+.nav-link:hover, .nav-link.active { color:white; background:rgba(255,255,255,0.12); }
+.nav-pill-lock { background:#fee2e2; color:#991b1b; }
+.nav-pill-lock:hover { background:#fecdd3; color:#991b1b; }
 
-        /* ─── APP SHELL ─── */
-        #adminAppContainer { display: none; flex-direction: column; min-height: 100vh; }
+.container { max-width:1440px; width:100%; margin:24px auto; padding:0 24px; flex:1; }
+.panel-section { display:none; }
+.panel-section.active { display:block; animation:fadeIn 0.2s ease-in-out; }
 
-        .ribbon-bar {
-            background: var(--prodip-navy);
-            color: white;
-            padding: 0 32px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: 66px;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .ribbon-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: white; }
-        .ribbon-brand h1 { font-size: 18px; font-weight: 800; }
-        .ribbon-brand span { font-size: 11px; opacity: 0.8; }
-        .nav-links { display: flex; gap: 8px; }
-        .nav-link {
-            color: #cbd5e1;
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            text-decoration: none;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .nav-link:hover, .nav-link.active { color: white; background: rgba(255,255,255,0.12); }
-        .nav-pill-lock { background: #fee2e2; color: #991b1b; }
-        .nav-pill-lock:hover { background: #fecdd3; }
+.section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:12px; border-bottom:2px solid var(--border); flex-wrap:wrap; gap:12px; }
+.section-header h2 { font-size:19px; color:var(--navy); display:flex; align-items:center; gap:8px; font-weight:800; }
+.card { background:white; border:1px solid var(--border); border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.03); overflow:hidden; }
 
-        .container { max-width: 1440px; width: 100%; margin: 24px auto; padding: 0 24px; flex: 1; }
-        .panel-section { display: none; }
-        .panel-section.active { display: block; animation: fadeIn 0.2s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+.table-responsive { width:100%; overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:12.8px; text-align:left; }
+th { background:#f1f5f9; padding:12px 14px; font-weight:700; color:#475569; border-bottom:1px solid var(--border); white-space:nowrap; }
+td { padding:12px 14px; border-bottom:1px solid var(--border); color:#1e293b; vertical-align:top; }
+tr:hover td { background:#f8fafc; }
+.empty-cell { text-align:center; padding:26px; color:#94a3b8; }
 
-        /* Header & Cards */
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid var(--prodip-border);
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-        .section-header h2 { font-size: 20px; color: var(--prodip-navy); display: flex; align-items: center; gap: 8px; }
-        .card {
-            background: white;
-            border: 1px solid var(--prodip-border);
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-            overflow: hidden;
-        }
+.badge { display:inline-block; padding:3px 9px; border-radius:12px; font-size:10.5px; font-weight:700; }
+.badge-admin { background:#fee2e2; color:#991b1b; }
+.badge-coord { background:#fef3c7; color:#92400e; }
+.badge-vol { background:#e0e7ff; color:#3730a3; }
+.badge-active { background:#dcfce7; color:#166534; }
+.badge-inactive { background:#f1f5f9; color:#64748b; }
+.badge-pending { background:#fef9c3; color:#854d0e; }
+.badge-rejected { background:#fee2e2; color:#991b1b; }
+.badge-credit { background:#fef3c7; color:#92400e; }
 
-        /* Table */
-        .table-responsive { width: 100%; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
-        th { background: #f1f5f9; padding: 12px 14px; font-weight: 700; color: #475569; border-bottom: 1px solid var(--prodip-border); }
-        td { padding: 12px 14px; border-bottom: 1px solid var(--prodip-border); color: #1e293b; }
-        tr:hover td { background: #f8fafc; }
-        
-        .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
-        .badge-admin { background: #fee2e2; color: #991b1b; }
-        .badge-coord { background: #fef3c7; color: #92400e; }
-        .badge-vol { background: #e0e7ff; color: #3730a3; }
-        .badge-active { background: #dcfce7; color: #166534; }
-        .badge-inactive { background: #f1f5f9; color: #64748b; }
+.btn-action { background:#f1f5f9; border:1px solid var(--border); padding:6px 10px; border-radius:6px; cursor:pointer; font-size:11.5px; font-weight:700; color:var(--navy); display:inline-flex; align-items:center; gap:5px; }
+.btn-action:hover { background:#e2e8f0; }
+.btn-action.btn-primary { background:var(--navy); color:white; border:none; }
+.btn-action.btn-primary:hover { background:var(--navy-dark); }
+.btn-action.btn-crimson { background:#fee2e2; color:#991b1b; border-color:#fecdd3; }
+.btn-action.btn-crimson:hover { background:#fecdd3; }
+.btn-action:disabled { opacity:0.5; cursor:not-allowed; }
+.search-input { padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:12.5px; width:260px; font-family:inherit; }
+.search-input:focus { border-color:var(--navy); outline:none; }
 
-        .btn-action {
-            background: #f1f5f9;
-            border: 1px solid var(--prodip-border);
-            padding: 6px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--prodip-navy);
-            transition: 0.15s;
-        }
-        .btn-action:hover { background: #e2e8f0; }
-        .btn-action.btn-primary { background: var(--prodip-navy); color: white; border: none; }
-        .btn-action.btn-primary:hover { background: var(--prodip-navy-dark); }
-        .btn-action.btn-crimson { background: #fee2e2; color: #991b1b; border-color: #fecdd3; }
-        .btn-action.btn-crimson:hover { background: #fecdd3; }
+/* ─── MODALS (bottom sheet on mobile) ─── */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); backdrop-filter:blur(3px); z-index:9999; display:none; justify-content:center; align-items:center; padding:20px; }
+.modal-overlay.active { display:flex; }
+.modal { background:white; border-radius:14px; width:100%; max-width:520px; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,0.2); max-height:90vh; overflow-y:auto; }
+.modal h3 { font-size:17px; color:var(--navy); margin-bottom:16px; display:flex; align-items:center; gap:8px; font-weight:800; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.field { margin-bottom:14px; display:flex; flex-direction:column; gap:5px; }
+.field label { font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.3px; }
+.field input, .field select, .field textarea { padding:9px 11px; border:1px solid var(--border); border-radius:8px; font-size:13px; outline:none; font-family:inherit; }
+.field input:focus, .field select:focus { border-color:var(--navy); box-shadow:0 0 0 3px rgba(30,44,79,0.1); }
+.days-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
+.days-grid label { display:flex; align-items:center; gap:6px; font-size:12px; text-transform:none; font-weight:normal; }
 
-        /* Modals */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.45);
-            backdrop-filter: blur(3px);
-            z-index: 9999;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal {
-            background: white;
-            border-radius: 14px;
-            width: 100%;
-            max-width: 520px;
-            padding: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        .modal h3 { font-size: 18px; color: var(--prodip-navy); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-        .field { margin-bottom: 14px; display: flex; flex-direction: column; gap: 5px; }
-        .field label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; }
-        .field input, .field select, .field textarea {
-            padding: 9px 11px;
-            border: 1px solid var(--prodip-border);
-            border-radius: 8px;
-            font-size: 13px;
-            outline: none;
-        }
-        .field input:focus, .field select:focus { border-color: var(--prodip-navy); }
-        .days-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-        .days-grid label { display: flex; align-items: center; gap: 6px; font-size: 12px; text-transform: none; font-weight: normal; }
+#toast { position:fixed; bottom:24px; right:24px; background:var(--navy); color:white; padding:11px 18px; border-radius:8px; font-size:13px; font-weight:600; box-shadow:0 4px 12px rgba(0,0,0,0.15); display:none; align-items:center; gap:8px; z-index:10000; }
 
-        #toast {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            background: var(--prodip-navy);
-            color: white;
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-size: 13px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            display: none;
-            z-index: 10000;
-        }
-    </style>
+@media (max-width:640px) {
+    .modal-overlay { align-items:flex-end; padding:0; }
+    .modal { max-width:none; border-radius:18px 18px 0 0; max-height:85vh; }
+}
+</style>
 </head>
 <body>
 
-    <!-- ─── 1. MANDATORY ADMIN LOCK OVERLAY ─── -->
-    <div id="adminLockScreen">
-        <div class="lock-box">
-            <div class="lock-badge"><i class="fas fa-lock"></i></div>
-            <h2>Admin Verification</h2>
-            <p>This panel is restricted exclusively to the Master Administrator.</p>
+<div id="adminLockScreen">
+    <div class="lock-box">
+        <div class="lock-badge"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+        <h2>Admin Verification</h2>
+        <p>This panel is restricted exclusively to the Master Administrator.</p>
 
-            <div class="lock-field">
-                <label>Admin Student ID</label>
-                <input type="text" id="adminLockId" placeholder="e.g. 2101103" />
-            </div>
-
-            <div class="lock-field">
-                <label>Master Password</label>
-                <input type="password" id="adminLockPass" placeholder="••••••••" />
-            </div>
-
-            <button class="btn-lock-submit" onclick="verifyAdminAccess()">
-                <i class="fas fa-shield-alt"></i> Authenticate & Unlock
-            </button>
-            <br />
-            <a href="index.html" class="lock-return"><i class="fas fa-arrow-left"></i> Return to Volunteer Portal</a>
+        <div class="lock-field">
+            <label>Email</label>
+            <input type="email" id="adminLockEmail" placeholder="you@cuet.ac.bd" autocomplete="username" />
         </div>
-    </div>
-
-    <!-- ─── 2. PROTECTED ADMIN DASHBOARD ─── -->
-    <div id="adminAppContainer">
-        <header class="ribbon-bar">
-            <div class="ribbon-brand">
-                <i class="fas fa-shield-alt" style="font-size: 22px; color: var(--prodip-gold);"></i>
-                <div>
-                    <h1>প্রদীপ Management Panel</h1>
-                    <span>Administrator: Golam Rabbany (ID: 2101103)</span>
-                </div>
-            </div>
-            <div class="nav-links">
-                <button class="nav-link active" onclick="switchSection('secVolunteers')"><i class="fas fa-users"></i> Volunteers</button>
-                <button class="nav-link" onclick="switchSection('secActivities')"><i class="fas fa-tasks"></i> Activities</button>
-                <button class="nav-link" onclick="switchSection('secInbox')"><i class="fas fa-inbox"></i> Approval Inbox</button>
-                <button class="nav-link" onclick="switchSection('secMaster')"><i class="fas fa-table"></i> Master Register</button>
-                <a href="co-ordinator.html" class="nav-link"><i class="fas fa-clipboard-check"></i> Coordinator</a>
-                <button class="nav-link nav-pill-lock" onclick="adminSignOut()"><i class="fas fa-lock"></i> Lock Panel</button>
-            </div>
-        </header>
-
-        <div class="container">
-            <!-- Volunteers Directory -->
-            <section id="secVolunteers" class="panel-section active">
-                <div class="section-header">
-                    <h2><i class="fas fa-user-friends" style="color:var(--prodip-navy);"></i> Volunteer Directory (<span id="volCount">0</span>)</h2>
-                    <div style="display:flex; gap:10px;">
-                        <input type="text" id="volSearchInput" placeholder="Search by name, ID, department..." oninput="filterVolunteers()" style="padding:7px 12px; border:1px solid var(--prodip-border); border-radius:6px; font-size:12.5px; width:260px;" />
-                        <button class="btn-action btn-primary" onclick="openAddVolunteerModal()"><i class="fas fa-plus"></i> Add Volunteer</button>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="table-responsive">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Student ID</th>
-                                    <th>Full Name</th>
-                                    <th>Dept / Batch</th>
-                                    <th>Role Level</th>
-                                    <th>Target Classes</th>
-                                    <th>Designated Days</th>
-                                    <th>Contact</th>
-                                    <th style="text-align:right;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="volunteersTableBody">
-                                <tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:24px;">Loading volunteers from Supabase...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Activities Management -->
-            <section id="secActivities" class="panel-section">
-                <div class="section-header">
-                    <h2><i class="fas fa-tasks" style="color:var(--prodip-navy);"></i> Activities & Curriculums</h2>
-                    <button class="btn-action btn-primary" onclick="openAddActivityModal()"><i class="fas fa-plus"></i> Add Activity</button>
-                </div>
-
-                <div class="card">
-                    <div class="table-responsive">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Activity Name</th>
-                                    <th>Category</th>
-                                    <th>Status</th>
-                                    <th>Description / Notes</th>
-                                    <th style="text-align:right;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="activitiesTableBody">
-                                <tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:24px;">Loading activities...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Approval Inbox -->
-            <section id="secInbox" class="panel-section">
-                <div class="section-header">
-                    <h2><i class="fas fa-inbox" style="color:var(--prodip-navy);"></i> Coordinator Submissions Inbox</h2>
-                    <button class="btn-action btn-primary" onclick="fetchAttendanceInbox()"><i class="fas fa-sync"></i> Refresh Inbox</button>
-                </div>
-                <div class="card">
-                    <div class="table-responsive">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Day</th>
-                                    <th>Credited Instructor</th>
-                                    <th>Activity</th>
-                                    <th>Class Topic</th>
-                                    <th>Status</th>
-                                    <th style="text-align:right;">Review</th>
-                                </tr>
-                            </thead>
-                            <tbody id="inboxTableBody">
-                                <tr><td colspan="7" style="text-align:center; color:#94a3b8; padding:24px;">Checking pending submissions...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Master Register -->
-            <section id="secMaster" class="panel-section">
-                <div class="section-header">
-                    <h2><i class="fas fa-database" style="color:var(--prodip-navy);"></i> Approved Master Attendance Register</h2>
-                    <button class="btn-action" onclick="exportApprovedCSV()"><i class="fas fa-download"></i> Export CSV</button>
-                </div>
-                <div class="card">
-                    <div class="table-responsive">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Day</th>
-                                    <th>Volunteer ID</th>
-                                    <th>Volunteer Name</th>
-                                    <th>Activity</th>
-                                    <th>Topic Covered</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="masterTableBody">
-                                <tr><td colspan="7" style="text-align:center; color:#94a3b8; padding:24px;">Loading approved records...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
+        <div class="lock-field">
+            <label>Password</label>
+            <input type="password" id="adminLockPass" placeholder="••••••••" autocomplete="current-password" />
+            <span id="adminLoginErr" class="field-errmsg" style="display:none;"></span>
         </div>
+
+        <button class="btn-lock-submit" id="adminLoginBtn" onclick="verifyAdminAccess()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+            Authenticate &amp; Unlock
+        </button>
+        <a href="index.html" class="lock-return">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+            Return to Volunteer Portal
+        </a>
     </div>
+</div>
 
-    <!-- ─── MODAL: EDIT VOLUNTEER ─── -->
-    <div class="modal-overlay" id="volunteerModal">
-        <div class="modal">
-            <h3 id="volModalTitle"><i class="fas fa-user-edit"></i> Edit Volunteer</h3>
-            <input type="hidden" id="volModalMode" value="edit" />
-            
-            <div class="form-row">
-                <div class="field">
-                    <label>Student ID</label>
-                    <input type="text" id="vFieldStudentId" placeholder="e.g. 2101103" />
-                </div>
-                <div class="field">
-                    <label>Full Name</label>
-                    <input type="text" id="vFieldName" placeholder="Enter full name" />
+<div id="adminAppContainer">
+    <header class="ribbon-bar">
+        <div class="ribbon-brand">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+            <div>
+                <h1>প্রদীপ Management Panel</h1>
+                <span id="adminIdentityLabel">Master Admin</span>
+            </div>
+        </div>
+        <div class="nav-links">
+            <button class="nav-link active" data-sec="secVolunteers" onclick="switchSection('secVolunteers', this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Volunteers</button>
+            <button class="nav-link" data-sec="secActivities" onclick="switchSection('secActivities', this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg> Activities</button>
+            <button class="nav-link" data-sec="secInbox" onclick="switchSection('secInbox', this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg> Approval Inbox</button>
+            <button class="nav-link" data-sec="secMaster" onclick="switchSection('secMaster', this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Master Register</button>
+            <a href="co-ordinator.html" class="nav-link"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Coordinator</a>
+            <button class="nav-link nav-pill-lock" onclick="adminSignOut()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Lock Panel</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Volunteers Directory -->
+        <section id="secVolunteers" class="panel-section active">
+            <div class="section-header">
+                <h2><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Volunteer Directory (<span id="volCount">0</span>)</h2>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="volSearchInput" class="search-input" placeholder="Search by name, ID, department..." oninput="filterVolunteers()" />
+                    <button class="btn-action btn-primary" onclick="openAddVolunteerModal()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Add Volunteer</button>
                 </div>
             </div>
-
-            <div class="form-row">
-                <div class="field">
-                    <label>Department</label>
-                    <input type="text" id="vFieldDept" placeholder="CE / EEE / CSE" />
-                </div>
-                <div class="field">
-                    <label>Batch</label>
-                    <input type="text" id="vFieldBatch" placeholder="2021" />
+            <div class="card">
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>Student ID</th><th>Full Name</th><th>Dept / Batch</th><th>Role Level</th><th>Target Classes</th><th>Designated Days</th><th>Contact</th><th style="text-align:right;">Actions</th></tr></thead>
+                        <tbody id="volunteersTableBody"><tr><td colspan="8"><div class="skel"></div></td></tr></tbody>
+                    </table>
                 </div>
             </div>
+        </section>
 
-            <div class="form-row">
-                <div class="field">
-                    <label>Role Level</label>
-                    <select id="vFieldRole">
-                        <option value="1">1 - Trainee Volunteer</option>
-                        <option value="2">2 - Active Volunteer</option>
-                        <option value="3">3 - Coordinator</option>
-                        <option value="4">4 - Senior Coordinator</option>
-                        <option value="5">5 - Assistant Director</option>
-                        <option value="6">6 - System Administrator</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label>Target Classes</label>
-                    <input type="number" id="vFieldTarget" min="1" max="100" placeholder="20" />
+        <!-- Activities Management -->
+        <section id="secActivities" class="panel-section">
+            <div class="section-header">
+                <h2><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg> Activities &amp; Curriculums</h2>
+                <button class="btn-action btn-primary" onclick="openAddActivityModal()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Add Activity</button>
+            </div>
+            <div class="card">
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>Activity Title</th><th>Category</th><th>Status</th><th>Description / Notes</th><th style="text-align:right;">Actions</th></tr></thead>
+                        <tbody id="activitiesTableBody"><tr><td colspan="5"><div class="skel"></div></td></tr></tbody>
+                    </table>
                 </div>
             </div>
+        </section>
 
-            <div class="form-row">
-                <div class="field">
-                    <label>WhatsApp / Phone</label>
-                    <input type="text" id="vFieldPhone" placeholder="01XXXXXXXXX" />
-                </div>
-                <div class="field">
-                    <label>Email Address</label>
-                    <input type="text" id="vFieldEmail" placeholder="student@cuet.ac.bd" />
+        <!-- Approval Inbox -->
+        <section id="secInbox" class="panel-section">
+            <div class="section-header">
+                <h2><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg> Coordinator Submissions Inbox</h2>
+                <button class="btn-action" onclick="fetchAttendanceInbox()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg> Refresh Inbox</button>
+            </div>
+            <div class="card">
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>Date</th><th>Day</th><th>Credited Instructor</th><th>Activity</th><th>Class Topic</th><th>Status</th><th style="text-align:right;">Review</th></tr></thead>
+                        <tbody id="inboxTableBody"><tr><td colspan="7"><div class="skel"></div></td></tr></tbody>
+                    </table>
                 </div>
             </div>
+        </section>
 
+        <!-- Master Register -->
+        <section id="secMaster" class="panel-section">
+            <div class="section-header">
+                <h2><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Approved Master Attendance Register</h2>
+                <button class="btn-action" onclick="exportApprovedCSV()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg> Export CSV</button>
+            </div>
+            <div class="card">
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>Date</th><th>Day</th><th>Volunteer ID</th><th>Volunteer Name</th><th>Activity</th><th>Topic Covered</th><th>Status</th></tr></thead>
+                        <tbody id="masterTableBody"><tr><td colspan="7"><div class="skel"></div></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<!-- ─── MODAL: EDIT VOLUNTEER ─── -->
+<div class="modal-overlay" id="volunteerModal">
+    <div class="modal">
+        <h3 id="volModalTitle"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Edit Volunteer</h3>
+        <input type="hidden" id="volModalMode" value="edit" />
+
+        <div class="form-row">
+            <div class="field"><label>Student ID</label><input type="text" id="vFieldStudentId" placeholder="e.g. 2101103" /></div>
+            <div class="field"><label>Full Name</label><input type="text" id="vFieldName" placeholder="Enter full name" /></div>
+        </div>
+        <div class="form-row">
+            <div class="field"><label>Department</label><input type="text" id="vFieldDept" placeholder="CE / EEE / CSE" /></div>
+            <div class="field"><label>Batch</label><input type="text" id="vFieldBatch" placeholder="2021" /></div>
+        </div>
+        <div class="form-row">
             <div class="field">
-                <label>Designated Teaching Days</label>
-                <div class="days-grid">
-                    <label><input type="checkbox" name="vDays" value="Sunday" /> Sunday</label>
-                    <label><input type="checkbox" name="vDays" value="Monday" /> Monday</label>
-                    <label><input type="checkbox" name="vDays" value="Tuesday" /> Tuesday</label>
-                    <label><input type="checkbox" name="vDays" value="Wednesday" /> Wednesday</label>
-                    <label><input type="checkbox" name="vDays" value="Thursday" /> Thursday</label>
-                    <label><input type="checkbox" name="vDays" value="Friday" /> Friday</label>
-                    <label><input type="checkbox" name="vDays" value="Saturday" /> Saturday</label>
-                </div>
+                <label>Role Level</label>
+                <select id="vFieldRole">
+                    <option value="1">1 - Trainee Volunteer</option>
+                    <option value="2">2 - Active Volunteer</option>
+                    <option value="3">3 - Coordinator</option>
+                    <option value="4">4 - Senior Coordinator</option>
+                    <option value="5">5 - Assistant Director</option>
+                    <option value="6">6 - System Administrator</option>
+                </select>
             </div>
-
-            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
-                <button class="btn-action" onclick="closeModal('volunteerModal')">Cancel</button>
-                <button class="btn-action btn-primary" onclick="saveVolunteerRecord()"><i class="fas fa-save"></i> Save to Database</button>
+            <div class="field"><label>Target Classes</label><input type="number" id="vFieldTarget" min="1" max="100" placeholder="20" /></div>
+        </div>
+        <div class="form-row">
+            <div class="field"><label>WhatsApp / Phone</label><input type="text" id="vFieldPhone" placeholder="01XXXXXXXXX" /></div>
+            <div class="field"><label>Email Address</label><input type="text" id="vFieldEmail" placeholder="student@cuet.ac.bd" /></div>
+        </div>
+        <div class="field">
+            <label>Designated Teaching Days</label>
+            <div class="days-grid">
+                <label><input type="checkbox" name="vDays" value="Sunday" /> Sunday</label>
+                <label><input type="checkbox" name="vDays" value="Monday" /> Monday</label>
+                <label><input type="checkbox" name="vDays" value="Tuesday" /> Tuesday</label>
+                <label><input type="checkbox" name="vDays" value="Wednesday" /> Wednesday</label>
+                <label><input type="checkbox" name="vDays" value="Thursday" /> Thursday</label>
+                <label><input type="checkbox" name="vDays" value="Friday" /> Friday</label>
+                <label><input type="checkbox" name="vDays" value="Saturday" /> Saturday</label>
             </div>
         </div>
-    </div>
+        <p style="font-size:11.5px; color:var(--muted); margin-bottom:14px;">Adding a volunteer here only creates their roster entry. They still need a login created under Authentication → Users with this same email before they can sign in.</p>
 
-    <!-- ─── MODAL: ACTIVITY ─── -->
-    <div class="modal-overlay" id="activityModal">
-        <div class="modal">
-            <h3 id="actModalTitle"><i class="fas fa-tasks"></i> Add Activity</h3>
-            <input type="hidden" id="actIdField" />
-
-            <div class="field">
-                <label>Activity Name</label>
-                <input type="text" id="actNameField" placeholder="e.g. Basic Mathematics & Geometry" />
-            </div>
-
-            <div class="form-row">
-                <div class="field">
-                    <label>Category</label>
-                    <input type="text" id="actCategoryField" placeholder="Academic / Medical / Workshop" />
-                </div>
-                <div class="field">
-                    <label>Status</label>
-                    <select id="actStatusField">
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="field">
-                <label>Description / Notes</label>
-                <textarea id="actNotesField" rows="3" placeholder="Brief outline of this activity..."></textarea>
-            </div>
-
-            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
-                <button class="btn-action" onclick="closeModal('activityModal')">Cancel</button>
-                <button class="btn-action btn-primary" onclick="saveActivityRecord()"><i class="fas fa-save"></i> Save Activity</button>
-            </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <button class="btn-action" onclick="closeModal('volunteerModal')">Cancel</button>
+            <button class="btn-action btn-primary" onclick="saveVolunteerRecord()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg> Save to Database</button>
         </div>
     </div>
+</div>
 
-    <div id="toast"></div>
+<!-- ─── MODAL: ACTIVITY ─── -->
+<div class="modal-overlay" id="activityModal">
+    <div class="modal">
+        <h3 id="actModalTitle"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg> Add Activity</h3>
+        <input type="hidden" id="actIdField" />
 
-    <script>
-        const SUPABASE_URL = 'https://knslzwpmtoealtylyquz.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_5cE65J23A-wlYAwSGQXy8g_1mduc4lT';
-        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        <div class="field"><label>Activity Title</label><input type="text" id="actTitleField" placeholder="e.g. Teaching and Mentorship" /></div>
+        <div class="form-row">
+            <div class="field"><label>Category</label><input type="text" id="actCategoryField" placeholder="Academic / Medical / Workshop" /></div>
+            <div class="field">
+                <label>Status</label>
+                <select id="actStatusField"><option value="Active">Active</option><option value="Inactive">Inactive</option></select>
+            </div>
+        </div>
+        <div class="field"><label>Description / Notes</label><textarea id="actNotesField" rows="3" placeholder="Brief outline of this activity..."></textarea></div>
 
-        const EXCLUSIVE_ADMIN_ID = '2101103';
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <button class="btn-action" onclick="closeModal('activityModal')">Cancel</button>
+            <button class="btn-action btn-primary" onclick="saveActivityRecord()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg> Save Activity</button>
+        </div>
+    </div>
+</div>
 
-        let cachedVolunteers = [];
-        let cachedActivities = [];
+<div id="toast"></div>
 
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 2600);
-        }
+<script>
+const sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
 
-        /* ─── STRICT AUTHENTICATION GATE ─── */
-        async function verifyAdminAccess() {
-            const idInput = document.getElementById('adminLockId').value.trim();
-            const passInput = document.getElementById('adminLockPass').value.trim();
+let cachedVolunteers = [];
+let cachedActivities = [];
+let currentAdmin = null;
 
-            if (!idInput || !passInput) {
-                return alert('Please enter both Admin ID and Password.');
-            }
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg> ${msg}`;
+    t.style.display = 'flex';
+    setTimeout(() => t.style.display = 'none', 2600);
+}
 
-            // Enforce that only your ID has access
-            if (idInput !== EXCLUSIVE_ADMIN_ID) {
-                return alert('Access Denied: Only the Master Administrator can access this panel.');
-            }
+function volunteerName(studentId) {
+    const v = cachedVolunteers.find(x => x.student_id === studentId);
+    return v ? v.full_name : studentId;
+}
 
-            if (passInput !== 'prodip2026') {
-                return alert('Incorrect password.');
-            }
+/* ─── AUTHENTICATION ─── */
+function setLoginError(msg) {
+    const box = document.getElementById('adminLoginErr');
+    const input = document.getElementById('adminLockPass');
+    if (msg) { box.textContent = msg; box.style.display = 'flex'; input.classList.add('field-err'); }
+    else { box.style.display = 'none'; input.classList.remove('field-err'); }
+}
 
-            // Verify role level in Supabase
-            const { data, error } = await sb
-                .from('volunteers')
-                .select('*')
-                .eq('student_id', EXCLUSIVE_ADMIN_ID)
-                .single();
+window.verifyAdminAccess = async function() {
+    const email = document.getElementById('adminLockEmail').value.trim();
+    const pass = document.getElementById('adminLockPass').value;
+    if (!email || !pass) return setLoginError('Enter email and password.');
 
-            if (error || !data || data.role_level < 6) {
-                return alert('Permission verification failed with Supabase. Ensure role_level is set to 6.');
-            }
+    const btn = document.getElementById('adminLoginBtn');
+    btn.disabled = true;
+    const { error: authErr } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (authErr) { btn.disabled = false; return setLoginError('Incorrect email or password.'); }
 
-            // Unlock and remember session
-            localStorage.setItem('prodip_admin_auth_id', EXCLUSIVE_ADMIN_ID);
-            unlockPanel();
-        }
+    const { data: { session } } = await sb.auth.getSession();
+    const { data, error } = await sb.from('volunteers').select('*').eq('auth_user_id', session.user.id).single();
+    btn.disabled = false;
 
-        function unlockPanel() {
-            document.getElementById('adminLockScreen').style.display = 'none';
-            document.getElementById('adminAppContainer').style.display = 'flex';
-            fetchVolunteers();
-        }
+    if (error || !data || data.role_level < 6) {
+        await sb.auth.signOut();
+        return setLoginError('Access denied — this panel is restricted to the Master Administrator.');
+    }
 
-        window.adminSignOut = function() {
-            if (confirm('Lock panel and sign out of admin session?')) {
-                localStorage.removeItem('prodip_admin_auth_id');
-                document.getElementById('adminLockId').value = '';
-                document.getElementById('adminLockPass').value = '';
-                document.getElementById('adminAppContainer').style.display = 'none';
-                document.getElementById('adminLockScreen').style.display = 'flex';
-                showToast('Panel locked.');
-            }
-        };
+    currentAdmin = data;
+    unlockPanel();
+};
 
-        // Check persistent admin session on initial load
-        (function checkExistingAdminSession() {
-            const savedId = localStorage.getItem('prodip_admin_auth_id');
-            if (savedId === EXCLUSIVE_ADMIN_ID) {
-                unlockPanel();
-            }
-        })();
+function unlockPanel() {
+    document.getElementById('adminLockScreen').style.display = 'none';
+    document.getElementById('adminAppContainer').style.display = 'flex';
+    document.getElementById('adminIdentityLabel').textContent = `Administrator: ${currentAdmin.full_name} (ID: ${currentAdmin.student_id})`;
+    fetchVolunteers();
+}
 
-        /* ─── SECTION ROUTING ─── */
-        window.switchSection = function(secId) {
-            document.querySelectorAll('.panel-section').forEach(el => el.classList.remove('active'));
-            document.getElementById(secId).classList.add('active');
+window.adminSignOut = async function() {
+    if (!confirm('Lock panel and sign out of admin session?')) return;
+    await sb.auth.signOut();
+    currentAdmin = null;
+    document.getElementById('adminLockEmail').value = '';
+    document.getElementById('adminLockPass').value = '';
+    document.getElementById('adminAppContainer').style.display = 'none';
+    document.getElementById('adminLockScreen').style.display = 'flex';
+    showToast('Panel locked.');
+};
 
-            document.querySelectorAll('.nav-links .nav-link').forEach(btn => btn.classList.remove('active'));
-            if (event && event.target) event.target.classList.add('active');
+(async function checkExistingSession() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    const { data } = await sb.from('volunteers').select('*').eq('auth_user_id', session.user.id).single();
+    if (data && data.role_level >= 6) {
+        currentAdmin = data;
+        unlockPanel();
+    }
+})();
 
-            if (secId === 'secVolunteers') fetchVolunteers();
-            if (secId === 'secActivities') fetchActivities();
-            if (secId === 'secInbox') fetchAttendanceInbox();
-            if (secId === 'secMaster') fetchMasterRegister();
-        };
+/* ─── SECTION ROUTING ─── */
+window.switchSection = function(secId, btnEl) {
+    document.querySelectorAll('.panel-section').forEach(el => el.classList.remove('active'));
+    document.getElementById(secId).classList.add('active');
+    document.querySelectorAll('.nav-links .nav-link').forEach(btn => btn.classList.remove('active'));
+    if (btnEl) btnEl.classList.add('active');
 
-        window.closeModal = function(id) {
-            document.getElementById(id).classList.remove('active');
-        };
+    if (secId === 'secVolunteers') fetchVolunteers();
+    if (secId === 'secActivities') fetchActivities();
+    if (secId === 'secInbox') fetchAttendanceInbox();
+    if (secId === 'secMaster') fetchMasterRegister();
+};
 
-        /* ─── VOLUNTEERS DIRECTORY ─── */
-        async function fetchVolunteers() {
-            const { data, error } = await sb.from('volunteers').select('*').order('full_name');
-            if (error) return alert("Error fetching volunteers: " + error.message);
-            cachedVolunteers = data || [];
-            document.getElementById('volCount').textContent = cachedVolunteers.length;
-            renderVolunteers(cachedVolunteers);
-        }
+window.closeModal = function(id) { document.getElementById(id).classList.remove('active'); };
 
-        function renderVolunteers(list) {
-            const tbody = document.getElementById('volunteersTableBody');
-            if (!list.length) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">No volunteers found.</td></tr>';
-                return;
-            }
+/* ─── VOLUNTEERS DIRECTORY ─── */
+async function fetchVolunteers() {
+    const { data, error } = await sb.from('volunteers').select('*').order('full_name');
+    if (error) return alert('Error fetching volunteers: ' + error.message);
+    cachedVolunteers = data || [];
+    document.getElementById('volCount').textContent = cachedVolunteers.length;
+    renderVolunteers(cachedVolunteers);
+}
 
-            tbody.innerHTML = list.map(v => {
-                let badgeClass = 'badge-vol';
-                let roleName = 'Volunteer';
-                if (v.role_level >= 6) { badgeClass = 'badge-admin'; roleName = 'Admin'; }
-                else if (v.role_level >= 3) { badgeClass = 'badge-coord'; roleName = 'Coordinator'; }
+function renderVolunteers(list) {
+    const tbody = document.getElementById('volunteersTableBody');
+    if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">No volunteers found.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = list.map(v => {
+        let badgeClass = 'badge-vol', roleName = 'Volunteer';
+        if (v.role_level >= 6) { badgeClass = 'badge-admin'; roleName = 'Admin'; }
+        else if (v.role_level >= 3) { badgeClass = 'badge-coord'; roleName = 'Coordinator'; }
+        const days = (v.designated_days || []).join(', ') || 'None';
 
-                const days = (v.designated_days || []).join(', ') || 'None';
+        return `<tr>
+            <td><b>${v.student_id}</b></td>
+            <td>${v.full_name}</td>
+            <td>${v.department || '—'} / ${v.batch || '—'}</td>
+            <td><span class="badge ${badgeClass}">${roleName} (${v.role_level})</span></td>
+            <td><b>${v.target_classes || 20}</b> classes</td>
+            <td style="font-size:12px; color:#475569;">${days}</td>
+            <td style="font-size:12px;">${v.phone || '—'}</td>
+            <td style="text-align:right;">
+                <button class="btn-action" onclick="openEditVolunteerModal('${v.student_id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Edit</button>
+                <button class="btn-action btn-crimson" onclick="deleteVolunteer('${v.student_id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+            </td>
+        </tr>`;
+    }).join('');
+}
 
-                return `
-                    <tr>
-                        <td><b>${v.student_id}</b></td>
-                        <td>${v.full_name}</td>
-                        <td>${v.department || '—'} '${v.batch || '—'}</td>
-                        <td><span class="badge ${badgeClass}">${roleName} (${v.role_level})</span></td>
-                        <td><b>${v.target_classes || 20}</b> classes</td>
-                        <td style="font-size:12px; color:#475569;">${days}</td>
-                        <td style="font-size:12px;">${v.phone || '—'}</td>
-                        <td style="text-align:right;">
-                            <button class="btn-action" onclick="openEditVolunteerModal('${v.student_id}')"><i class="fas fa-edit"></i> Edit</button>
-                            <button class="btn-action btn-crimson" onclick="deleteVolunteer('${v.student_id}')"><i class="fas fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
+window.filterVolunteers = function() {
+    const q = document.getElementById('volSearchInput').value.toLowerCase();
+    renderVolunteers(cachedVolunteers.filter(v =>
+        (v.full_name || '').toLowerCase().includes(q) ||
+        (v.student_id || '').toLowerCase().includes(q) ||
+        (v.department || '').toLowerCase().includes(q)
+    ));
+};
 
-        window.filterVolunteers = function() {
-            const q = document.getElementById('volSearchInput').value.toLowerCase();
-            const filtered = cachedVolunteers.filter(v => 
-                (v.full_name || '').toLowerCase().includes(q) ||
-                (v.student_id || '').toLowerCase().includes(q) ||
-                (v.department || '').toLowerCase().includes(q)
-            );
-            renderVolunteers(filtered);
-        };
+window.openAddVolunteerModal = function() {
+    document.getElementById('volModalTitle').innerHTML = 'Add Volunteer';
+    document.getElementById('volModalMode').value = 'add';
+    document.getElementById('vFieldStudentId').value = '';
+    document.getElementById('vFieldStudentId').disabled = false;
+    document.getElementById('vFieldName').value = '';
+    document.getElementById('vFieldDept').value = '';
+    document.getElementById('vFieldBatch').value = '';
+    document.getElementById('vFieldRole').value = '2';
+    document.getElementById('vFieldTarget').value = '20';
+    document.getElementById('vFieldPhone').value = '';
+    document.getElementById('vFieldEmail').value = '';
+    document.querySelectorAll('input[name="vDays"]').forEach(cb => cb.checked = false);
+    document.getElementById('volunteerModal').classList.add('active');
+};
 
-        window.openAddVolunteerModal = function() {
-            document.getElementById('volModalTitle').innerHTML = '<i class="fas fa-user-plus"></i> Add Volunteer';
-            document.getElementById('volModalMode').value = 'add';
-            document.getElementById('vFieldStudentId').value = '';
-            document.getElementById('vFieldStudentId').disabled = false;
-            document.getElementById('vFieldName').value = '';
-            document.getElementById('vFieldDept').value = '';
-            document.getElementById('vFieldBatch').value = '';
-            document.getElementById('vFieldRole').value = '2';
-            document.getElementById('vFieldTarget').value = '20';
-            document.getElementById('vFieldPhone').value = '';
-            document.getElementById('vFieldEmail').value = '';
-            document.querySelectorAll('input[name="vDays"]').forEach(cb => cb.checked = false);
-            document.getElementById('volunteerModal').classList.add('active');
-        };
+window.openEditVolunteerModal = function(studentId) {
+    const v = cachedVolunteers.find(item => item.student_id === studentId);
+    if (!v) return;
+    document.getElementById('volModalTitle').innerHTML = 'Edit Volunteer';
+    document.getElementById('volModalMode').value = 'edit';
+    document.getElementById('vFieldStudentId').value = v.student_id;
+    document.getElementById('vFieldStudentId').disabled = true;
+    document.getElementById('vFieldName').value = v.full_name || '';
+    document.getElementById('vFieldDept').value = v.department || '';
+    document.getElementById('vFieldBatch').value = v.batch || '';
+    document.getElementById('vFieldRole').value = v.role_level || 2;
+    document.getElementById('vFieldTarget').value = v.target_classes || 20;
+    document.getElementById('vFieldPhone').value = v.phone || '';
+    document.getElementById('vFieldEmail').value = v.email || '';
+    const userDays = v.designated_days || [];
+    document.querySelectorAll('input[name="vDays"]').forEach(cb => cb.checked = userDays.includes(cb.value));
+    document.getElementById('volunteerModal').classList.add('active');
+};
 
-        window.openEditVolunteerModal = function(studentId) {
-            const v = cachedVolunteers.find(item => item.student_id === studentId);
-            if (!v) return;
+window.saveVolunteerRecord = async function() {
+    const mode = document.getElementById('volModalMode').value;
+    const studentId = document.getElementById('vFieldStudentId').value.trim();
+    const fullName = document.getElementById('vFieldName').value.trim();
+    if (!studentId || !fullName) return alert('Student ID and Full Name are required!');
 
-            document.getElementById('volModalTitle').innerHTML = '<i class="fas fa-user-edit"></i> Edit Volunteer';
-            document.getElementById('volModalMode').value = 'edit';
-            document.getElementById('vFieldStudentId').value = v.student_id;
-            document.getElementById('vFieldStudentId').disabled = true;
-            document.getElementById('vFieldName').value = v.full_name || '';
-            document.getElementById('vFieldDept').value = v.department || '';
-            document.getElementById('vFieldBatch').value = v.batch || '';
-            document.getElementById('vFieldRole').value = v.role_level || 2;
-            document.getElementById('vFieldTarget').value = v.target_classes || 20;
-            document.getElementById('vFieldPhone').value = v.phone || '';
-            document.getElementById('vFieldEmail').value = v.email || '';
+    const record = {
+        full_name: fullName,
+        department: document.getElementById('vFieldDept').value.trim(),
+        batch: document.getElementById('vFieldBatch').value.trim(),
+        role_level: parseInt(document.getElementById('vFieldRole').value, 10),
+        target_classes: parseInt(document.getElementById('vFieldTarget').value, 10) || 20,
+        phone: document.getElementById('vFieldPhone').value.trim(),
+        email: document.getElementById('vFieldEmail').value.trim(),
+        designated_days: Array.from(document.querySelectorAll('input[name="vDays"]:checked')).map(cb => cb.value)
+    };
 
-            const userDays = v.designated_days || [];
-            document.querySelectorAll('input[name="vDays"]').forEach(cb => {
-                cb.checked = userDays.includes(cb.value);
-            });
+    const { error } = mode === 'add'
+        ? await sb.from('volunteers').insert([{ student_id: studentId, ...record }])
+        : await sb.from('volunteers').update(record).eq('student_id', studentId);
 
-            document.getElementById('volunteerModal').classList.add('active');
-        };
+    if (error) return alert((mode === 'add' ? 'Save failed: ' : 'Update failed: ') + error.message);
+    showToast(mode === 'add' ? 'Volunteer added to roster!' : 'Volunteer changes saved!');
+    closeModal('volunteerModal');
+    fetchVolunteers();
+};
 
-        window.saveVolunteerRecord = async function() {
-            const mode = document.getElementById('volModalMode').value;
-            const studentId = document.getElementById('vFieldStudentId').value.trim();
-            const fullName = document.getElementById('vFieldName').value.trim();
-            const department = document.getElementById('vFieldDept').value.trim();
-            const batch = document.getElementById('vFieldBatch').value.trim();
-            const roleLevel = parseInt(document.getElementById('vFieldRole').value, 10);
-            const targetClasses = parseInt(document.getElementById('vFieldTarget').value, 10) || 20;
-            const phone = document.getElementById('vFieldPhone').value.trim();
-            const email = document.getElementById('vFieldEmail').value.trim();
+window.deleteVolunteer = async function(studentId) {
+    if (currentAdmin && studentId === currentAdmin.student_id) return alert('You cannot delete the Master Administrator account.');
+    if (!confirm(`Remove volunteer ${studentId} from the roster?`)) return;
+    const { error } = await sb.from('volunteers').delete().eq('student_id', studentId);
+    if (error) return alert('Delete failed: ' + error.message);
+    showToast('Volunteer removed.');
+    fetchVolunteers();
+};
 
-            const checkedDays = Array.from(document.querySelectorAll('input[name="vDays"]:checked')).map(cb => cb.value);
+/* ─── ACTIVITIES MANAGEMENT ─── */
+async function fetchActivities() {
+    const { data, error } = await sb.from('activities').select('*').order('title');
+    if (error) return alert('Error loading activities: ' + error.message);
+    cachedActivities = data || [];
+    renderActivities(cachedActivities);
+}
 
-            if (!studentId || !fullName) {
-                return alert('Student ID and Full Name are required!');
-            }
+function renderActivities(list) {
+    const tbody = document.getElementById('activitiesTableBody');
+    if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-cell">No activities registered yet.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = list.map(a => `
+        <tr>
+            <td><b>${a.title}</b></td>
+            <td>${a.category || 'General'}</td>
+            <td><span class="badge ${a.status === 'Active' ? 'badge-active' : 'badge-inactive'}">${a.status || 'Active'}</span></td>
+            <td style="color:#64748b;">${a.notes || '—'}</td>
+            <td style="text-align:right;">
+                <button class="btn-action" onclick="openEditActivityModal(${a.id})"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+                <button class="btn-action btn-crimson" onclick="deleteActivity(${a.id})"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+            </td>
+        </tr>
+    `).join('');
+}
 
-            if (mode === 'add') {
-                const { error } = await sb.from('volunteers').insert([{
-                    student_id: studentId,
-                    full_name: fullName,
-                    department: department,
-                    batch: batch,
-                    role_level: roleLevel,
-                    target_classes: targetClasses,
-                    phone: phone,
-                    email: email,
-                    designated_days: checkedDays
-                }]);
-                if (error) return alert("Save failed: " + error.message);
-                showToast("Volunteer added to database!");
-            } else {
-                const { error } = await sb.from('volunteers').update({
-                    full_name: fullName,
-                    department: department,
-                    batch: batch,
-                    role_level: roleLevel,
-                    target_classes: targetClasses,
-                    phone: phone,
-                    email: email,
-                    designated_days: checkedDays
-                }).eq('student_id', studentId);
-                if (error) return alert("Update failed: " + error.message);
-                showToast("Volunteer changes saved to database!");
-            }
+window.openAddActivityModal = function() {
+    document.getElementById('actModalTitle').textContent = 'Add Activity';
+    document.getElementById('actIdField').value = '';
+    document.getElementById('actTitleField').value = '';
+    document.getElementById('actCategoryField').value = '';
+    document.getElementById('actStatusField').value = 'Active';
+    document.getElementById('actNotesField').value = '';
+    document.getElementById('activityModal').classList.add('active');
+};
 
-            closeModal('volunteerModal');
-            fetchVolunteers();
-        };
+window.openEditActivityModal = function(id) {
+    const a = cachedActivities.find(item => item.id === id);
+    if (!a) return;
+    document.getElementById('actModalTitle').textContent = 'Edit Activity';
+    document.getElementById('actIdField').value = a.id;
+    document.getElementById('actTitleField').value = a.title || '';
+    document.getElementById('actCategoryField').value = a.category || '';
+    document.getElementById('actStatusField').value = a.status || 'Active';
+    document.getElementById('actNotesField').value = a.notes || '';
+    document.getElementById('activityModal').classList.add('active');
+};
 
-        window.deleteVolunteer = async function(studentId) {
-            if (studentId === EXCLUSIVE_ADMIN_ID) {
-                return alert("You cannot delete the master administrator account.");
-            }
-            if (!confirm(`Are you sure you want to delete volunteer ${studentId}?`)) return;
-            const { error } = await sb.from('volunteers').delete().eq('student_id', studentId);
-            if (error) return alert("Delete failed: " + error.message);
-            showToast("Volunteer removed.");
-            fetchVolunteers();
-        };
+window.saveActivityRecord = async function() {
+    const id = document.getElementById('actIdField').value;
+    const title = document.getElementById('actTitleField').value.trim();
+    const category = document.getElementById('actCategoryField').value.trim();
+    const status = document.getElementById('actStatusField').value;
+    const notes = document.getElementById('actNotesField').value.trim();
+    if (!title) return alert('Activity title is required!');
 
-        /* ─── ACTIVITIES MANAGEMENT ─── */
-        async function fetchActivities() {
-            const { data, error } = await sb.from('activities').select('*').order('name');
-            if (error) return alert("Error loading activities: " + error.message);
-            cachedActivities = data || [];
-            renderActivities(cachedActivities);
-        }
+    const { error } = id
+        ? await sb.from('activities').update({ title, category, status, notes }).eq('id', id)
+        : await sb.from('activities').insert([{ title, category, status, notes }]);
 
-        function renderActivities(list) {
-            const tbody = document.getElementById('activitiesTableBody');
-            if (!list.length) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">No activities registered yet.</td></tr>';
-                return;
-            }
+    if (error) return alert((id ? 'Update failed: ' : 'Save failed: ') + error.message);
+    showToast(id ? 'Activity updated!' : 'Activity added!');
+    closeModal('activityModal');
+    fetchActivities();
+};
 
-            tbody.innerHTML = list.map(a => `
-                <tr>
-                    <td><b>${a.name}</b></td>
-                    <td>${a.category || 'General'}</td>
-                    <td><span class="badge ${a.status === 'Active' ? 'badge-active' : 'badge-inactive'}">${a.status || 'Active'}</span></td>
-                    <td style="color:#64748b;">${a.notes || '—'}</td>
-                    <td style="text-align:right;">
-                        <button class="btn-action" onclick="openEditActivityModal('${a.id}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn-action btn-crimson" onclick="deleteActivity('${a.id}')"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>
-            `).join('');
-        }
+window.deleteActivity = async function(id) {
+    if (!confirm('Delete this activity?')) return;
+    const { error } = await sb.from('activities').delete().eq('id', id);
+    if (error) return alert('Delete failed: ' + error.message);
+    showToast('Activity removed.');
+    fetchActivities();
+};
 
-        window.openAddActivityModal = function() {
-            document.getElementById('actModalTitle').innerHTML = '<i class="fas fa-plus"></i> Add Activity';
-            document.getElementById('actIdField').value = '';
-            document.getElementById('actNameField').value = '';
-            document.getElementById('actCategoryField').value = '';
-            document.getElementById('actStatusField').value = 'Active';
-            document.getElementById('actNotesField').value = '';
-            document.getElementById('activityModal').classList.add('active');
-        };
+/* ─── INBOX & MASTER REGISTER ─── */
+async function ensureVolunteersCached() {
+    if (cachedVolunteers.length) return;
+    const { data } = await sb.from('volunteers').select('*').order('full_name');
+    cachedVolunteers = data || [];
+}
 
-        window.openEditActivityModal = function(id) {
-            const a = cachedActivities.find(item => item.id == id);
-            if (!a) return;
-            document.getElementById('actModalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Activity';
-            document.getElementById('actIdField').value = a.id;
-            document.getElementById('actNameField').value = a.name || '';
-            document.getElementById('actCategoryField').value = a.category || '';
-            document.getElementById('actStatusField').value = a.status || 'Active';
-            document.getElementById('actNotesField').value = a.notes || '';
-            document.getElementById('activityModal').classList.add('active');
-        };
+async function fetchAttendanceInbox() {
+    await ensureVolunteersCached();
+    const { data, error } = await sb.from('attendance_logs').select('*').eq('status', 'Pending').order('session_date', { ascending: false });
+    if (error) return console.error(error);
 
-        window.saveActivityRecord = async function() {
-            const id = document.getElementById('actIdField').value;
-            const name = document.getElementById('actNameField').value.trim();
-            const category = document.getElementById('actCategoryField').value.trim();
-            const status = document.getElementById('actStatusField').value;
-            const notes = document.getElementById('actNotesField').value.trim();
+    const tbody = document.getElementById('inboxTableBody');
+    if (!data || !data.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-cell">No pending submissions waiting for approval.</td></tr>';
+        return;
+    }
 
-            if (!name) return alert('Activity name is required!');
+    tbody.innerHTML = data.map(row => {
+        const wasReplacement = row.instructor_id !== row.credited_to_id;
+        const creditCell = wasReplacement
+            ? `<b>${volunteerName(row.credited_to_id)}</b> (${row.credited_to_id}) <span class="badge badge-credit">Replacement</span>`
+            : `<b>${volunteerName(row.credited_to_id)}</b> (${row.credited_to_id})`;
+        return `<tr>
+            <td>${row.session_date}</td>
+            <td>${row.day_of_week || '—'}</td>
+            <td>${creditCell}</td>
+            <td>${row.activity_title || '—'}</td>
+            <td>${row.topic_covered || '—'}</td>
+            <td><span class="badge badge-pending">Pending</span></td>
+            <td style="text-align:right;">
+                <div style="display:flex; gap:6px; justify-content:flex-end;">
+                    <button class="btn-action btn-primary" onclick="reviewLog('${row.id}', 'Approved')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg> Approve</button>
+                    <button class="btn-action btn-crimson" onclick="reviewLog('${row.id}', 'Rejected')">Reject</button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
 
-            if (!id) {
-                const { error } = await sb.from('activities').insert([{ name, category, status, notes }]);
-                if (error) return alert("Save failed: " + error.message);
-                showToast("Activity added!");
-            } else {
-                const { error } = await sb.from('activities').update({ name, category, status, notes }).eq('id', id);
-                if (error) return alert("Update failed: " + error.message);
-                showToast("Activity updated!");
-            }
+window.reviewLog = async function(id, status) {
+    const { error } = await sb.from('attendance_logs').update({ status }).eq('id', id);
+    if (error) return alert('Review error: ' + error.message);
+    showToast(status === 'Approved' ? 'Session approved and written to Master Register!' : 'Session rejected.');
+    fetchAttendanceInbox();
+};
 
-            closeModal('activityModal');
-            fetchActivities();
-        };
+async function fetchMasterRegister() {
+    await ensureVolunteersCached();
+    const { data, error } = await sb.from('attendance_logs').select('*').eq('status', 'Approved').order('session_date', { ascending: false });
+    if (error) return console.error(error);
 
-        window.deleteActivity = async function(id) {
-            if (!confirm('Delete this activity?')) return;
-            const { error } = await sb.from('activities').delete().eq('id', id);
-            if (error) return alert("Delete failed: " + error.message);
-            showToast("Activity removed.");
-            fetchActivities();
-        };
+    const tbody = document.getElementById('masterTableBody');
+    if (!data || !data.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-cell">No approved attendance records yet.</td></tr>';
+        return;
+    }
 
-        /* ─── INBOX & MASTER REGISTER ─── */
-        async function fetchAttendanceInbox() {
-            const { data, error } = await sb
-                .from('attendance_logs')
-                .select('*')
-                .eq('status', 'Pending')
-                .order('session_date', { ascending: false });
+    tbody.innerHTML = data.map(row => `
+        <tr>
+            <td>${row.session_date}</td>
+            <td>${row.day_of_week || '—'}</td>
+            <td><b>${row.credited_to_id}</b></td>
+            <td>${volunteerName(row.credited_to_id)}</td>
+            <td>${row.activity_title || '—'}</td>
+            <td>${row.topic_covered || '—'}</td>
+            <td><span class="badge badge-active">Approved</span></td>
+        </tr>
+    `).join('');
+}
 
-            if (error) return console.error(error);
+window.exportApprovedCSV = async function() {
+    await ensureVolunteersCached();
+    const { data, error } = await sb.from('attendance_logs').select('*').eq('status', 'Approved').order('session_date', { ascending: false });
+    if (error) return alert('Export failed: ' + error.message);
+    if (!data || !data.length) return alert('No approved records to export yet.');
 
-            const tbody = document.getElementById('inboxTableBody');
-            if (!data || !data.length) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:#64748b;">No pending submissions waiting for approval.</td></tr>';
-                return;
-            }
+    const headers = ['Date', 'Day', 'Volunteer ID', 'Volunteer Name', 'Activity', 'In Time', 'Out Time', 'Designated Day', 'Topic Covered', 'Verified By'];
+    const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+    const rows = data.map(r => [
+        r.session_date, r.day_of_week, r.credited_to_id, volunteerName(r.credited_to_id),
+        r.activity_title, r.in_time, r.out_time || '', r.is_designated_day ? 'Yes' : 'No',
+        r.topic_covered || '', r.verified_by || ''
+    ].map(escapeCsv).join(','));
 
-            tbody.innerHTML = data.map(row => `
-                <tr>
-                    <td>${row.session_date}</td>
-                    <td>${row.day_of_week || '—'}</td>
-                    <td><b>${row.credited_to_id}</b> (${row.credited_to_name || 'Volunteer'})</td>
-                    <td>${row.activity_name || 'Class'}</td>
-                    <td>${row.topic_covered || '—'}</td>
-                    <td><span class="badge badge-coord">Pending</span></td>
-                    <td style="text-align:right;">
-                        <button class="btn-action btn-primary" onclick="approveLog('${row.id}')"><i class="fas fa-check"></i> Approve</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        window.approveLog = async function(id) {
-            const { error } = await sb.from('attendance_logs').update({ status: 'Approved' }).eq('id', id);
-            if (error) return alert("Approval error: " + error.message);
-            showToast("Session approved and written to Master Register!");
-            fetchAttendanceInbox();
-        };
-
-        async function fetchMasterRegister() {
-            const { data, error } = await sb
-                .from('attendance_logs')
-                .select('*')
-                .eq('status', 'Approved')
-                .order('session_date', { ascending: false });
-
-            if (error) return console.error(error);
-
-            const tbody = document.getElementById('masterTableBody');
-            if (!data || !data.length) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:#64748b;">No approved attendance records yet.</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = data.map(row => `
-                <tr>
-                    <td>${row.session_date}</td>
-                    <td>${row.day_of_week || '—'}</td>
-                    <td><b>${row.credited_to_id}</b></td>
-                    <td>${row.credited_to_name || '—'}</td>
-                    <td>${row.activity_name || '—'}</td>
-                    <td>${row.topic_covered || '—'}</td>
-                    <td><span class="badge badge-active">Approved</span></td>
-                </tr>
-            `).join('');
-        }
-    </script>
+    const csv = [headers.map(escapeCsv).join(','), ...rows].join('\r\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `prodip-master-register-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast('CSV exported!');
+};
+</script>
 </body>
 </html>

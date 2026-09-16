@@ -1,822 +1,578 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>প্রদীপ Coordination Desk · Log Volunteer Work</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root {
-            --prodip-navy: #1E2C4F;
-            --prodip-navy-dark: #141E36;
-            --prodip-crimson: #8E1B32;
-            --prodip-olive: #7B9356;
-            --prodip-olive-hover: #667d45;
-            --prodip-gold: #E5A823;
-            --prodip-canvas: #F8FAFC;
-            --prodip-card: #FFFFFF;
-            --prodip-text: #0F172A;
-            --prodip-muted: #64748B;
-            --prodip-border: #E2E8F0;
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>প্রদীপ Coordination Desk · Log Volunteer Work</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<style>
+:root {
+    --navy:#1E2C4F; --navy-dark:#141E36; --crimson:#8E1B32; --olive:#7B9356; --olive-hover:#667d45;
+    --gold:#E5A823; --canvas:#F8FAFC; --card:#fff; --text:#0F172A; --muted:#64748B; --border:#E2E8F0;
+}
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
+body { background:var(--canvas); color:var(--text); min-height:100vh; display:flex; flex-direction:column; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+button { font: inherit; }
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+.skel { background: linear-gradient(90deg,#eef1f4 25%,#f6f8fa 37%,#eef1f4 63%); background-size: 400% 100%; animation: shimmer 1.4s ease-in-out infinite; border-radius: 4px; }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-        body { background: var(--prodip-canvas); color: var(--prodip-text); min-height: 100vh; display: flex; flex-direction: column; }
+/* ─── LOGIN SCREEN ─── */
+#coordLockScreen { position:fixed; inset:0; background:radial-gradient(circle at center, #1e293b, var(--navy-dark)); display:flex; align-items:center; justify-content:center; z-index:99999; padding:20px; }
+.lock-box { background:white; border-radius:16px; padding:34px 28px; max-width:400px; width:100%; box-shadow:0 25px 50px -12px rgba(0,0,0,0.4); text-align:center; }
+.lock-badge { width:58px; height:58px; border-radius:50%; background:#dcfce7; color:var(--olive); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; }
+.lock-box h2 { font-size:20px; color:var(--navy); margin-bottom:6px; font-weight:800; }
+.lock-box p { font-size:12.5px; color:var(--muted); margin-bottom:22px; }
+.lock-field { text-align:left; margin-bottom:14px; }
+.lock-field label { font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; display:block; margin-bottom:5px; }
+.lock-field input { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; outline:none; font-family:inherit; }
+.lock-field input.field-err { border-color:#dc2626; background:#fef2f2; }
+.lock-field input:focus { border-color:var(--olive); }
+.field-errmsg { display:flex; align-items:center; gap:6px; font-size:11.5px; color:#dc2626; font-weight:600; margin-top:6px; }
+.btn-lock-submit { width:100%; background:var(--olive); color:white; border:none; padding:12px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; margin-top:18px; }
+.btn-lock-submit:hover { background:var(--olive-hover); }
+.btn-lock-submit:disabled { opacity:0.6; cursor:not-allowed; }
+.lock-return { margin-top:14px; display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:#64748b; text-decoration:none; }
+.lock-return:hover { text-decoration:underline; color:var(--navy); }
 
-        /* ─── COORDINATOR LOGIN GATE ─── */
-        #coordLockScreen {
-            position: fixed;
-            inset: 0;
-            background: radial-gradient(circle at center, #1e293b, var(--prodip-navy-dark));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 99999;
-            padding: 20px;
-        }
-        .lock-box {
-            background: white;
-            border-radius: 16px;
-            padding: 34px 28px;
-            max-width: 420px;
-            width: 100%;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-            text-align: center;
-        }
-        .lock-badge {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: #dcfce7;
-            color: var(--prodip-olive);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 26px;
-            margin: 0 auto 16px;
-        }
-        .lock-box h2 { font-size: 20px; color: var(--prodip-navy); margin-bottom: 6px; }
-        .lock-box p { font-size: 13px; color: var(--prodip-muted); margin-bottom: 22px; }
-        .lock-field { text-align: left; margin-bottom: 14px; }
-        .lock-field label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; display: block; margin-bottom: 5px; }
-        .lock-field input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--prodip-border);
-            border-radius: 8px;
-            font-size: 14px;
-            outline: none;
-        }
-        .lock-field input:focus { border-color: var(--prodip-olive); }
-        .btn-lock-submit {
-            width: 100%;
-            background: var(--prodip-olive);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 18px;
-        }
-        .btn-lock-submit:hover { background: var(--prodip-olive-hover); }
+/* ─── APP SHELL ─── */
+#coordAppContainer { display:none; flex-direction:column; min-height:100vh; }
+.ribbon-bar { background:var(--navy); color:white; padding:0 32px; display:flex; align-items:center; justify-content:space-between; height:66px; position:sticky; top:0; z-index:1000; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+.ribbon-brand { display:flex; align-items:center; gap:12px; }
+.ribbon-brand h1 { font-size:18px; font-weight:800; }
+.ribbon-brand span { font-size:11px; opacity:0.85; }
+.ribbon-actions { display:flex; align-items:center; gap:10px; }
+.coord-pill { background:rgba(255,255,255,0.12); padding:6px 12px; border-radius:20px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:6px; }
+.btn-nav { color:#cbd5e1; padding:8px 14px; border-radius:6px; font-size:12.5px; font-weight:600; text-decoration:none; border:none; background:transparent; cursor:pointer; display:flex; align-items:center; gap:6px; }
+.btn-nav:hover { color:white; background:rgba(255,255,255,0.12); }
+.btn-nav-exit { background:var(--crimson); color:white; }
+.btn-nav-exit:hover { background:#731326; }
 
-        /* ─── APP SHELL ─── */
-        #coordAppContainer { display: none; flex-direction: column; min-height: 100vh; }
+.container { max-width:1400px; width:100%; margin:24px auto; padding:0 20px; flex:1; }
+.grid-layout { display:grid; grid-template-columns:380px 1fr; gap:22px; }
+.card { background:white; border:1px solid var(--border); border-radius:14px; padding:22px; box-shadow:0 2px 10px rgba(0,0,0,0.03); }
+.card-title { font-size:16px; font-weight:800; color:var(--navy); margin-bottom:16px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border); padding-bottom:10px; }
 
-        .ribbon-bar {
-            background: var(--prodip-navy);
-            color: white;
-            padding: 0 32px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: 66px;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .ribbon-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: white; }
-        .ribbon-brand h1 { font-size: 18px; font-weight: 800; }
-        .ribbon-brand span { font-size: 11px; opacity: 0.85; }
-        .ribbon-actions { display: flex; align-items: center; gap: 10px; }
-        .coord-pill {
-            background: rgba(255,255,255,0.12);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn-nav {
-            color: #cbd5e1;
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-size: 12.5px;
-            font-weight: 600;
-            text-decoration: none;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn-nav:hover { color: white; background: rgba(255,255,255,0.12); }
-        .btn-nav-exit { background: var(--prodip-crimson); color: white; }
-        .btn-nav-exit:hover { background: #731326; }
+.field { margin-bottom:14px; display:flex; flex-direction:column; gap:5px; }
+.field label { font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.3px; }
+.field select, .field input, .field textarea { padding:10px 11px; border:1px solid var(--border); border-radius:8px; font-size:13.5px; outline:none; background:#fff; font-family:inherit; }
+.field select:focus, .field input:focus, .field textarea:focus { border-color:var(--olive); box-shadow:0 0 0 3px rgba(123,147,86,0.12); }
+.field.field-err input { border-color:#dc2626; background:#fef2f2; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 
-        /* Layout */
-        .container { max-width: 1400px; width: 100%; margin: 24px auto; padding: 0 20px; flex: 1; }
-        .grid-layout { display: grid; grid-template-columns: 380px 1fr; gap: 24px; }
+.badge-day { font-size:11px; padding:4px 9px; border-radius:20px; font-weight:700; display:inline-flex; align-items:center; gap:5px; margin-top:4px; }
+.badge-day.match { background:#dcfce7; color:#166534; }
+.badge-day.mismatch { background:#fef3c7; color:#92400e; }
 
-        .card {
-            background: white;
-            border: 1px solid var(--prodip-border);
-            border-radius: 14px;
-            padding: 24px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-        }
-        .card-title {
-            font-size: 17px;
-            font-weight: 800;
-            color: var(--prodip-navy);
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border-bottom: 1px solid var(--prodip-border);
-            padding-bottom: 10px;
-        }
+.btn-submit-work { width:100%; background:var(--olive); color:white; border:none; padding:12px; border-radius:8px; font-size:13.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; margin-top:8px; }
+.btn-submit-work:hover { background:var(--olive-hover); }
 
-        /* Form styling */
-        .field { margin-bottom: 14px; display: flex; flex-direction: column; gap: 5px; }
-        .field label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; }
-        .field select, .field input, .field textarea {
-            padding: 10px 12px;
-            border: 1px solid var(--prodip-border);
-            border-radius: 8px;
-            font-size: 13.5px;
-            outline: none;
-            background: #fff;
-        }
-        .field select:focus, .field input:focus, .field textarea:focus { border-color: var(--prodip-olive); }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stagehead { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--border); padding-bottom:12px; }
+.stagehead h2 { font-size:16px; font-weight:800; color:var(--navy); display:flex; align-items:center; gap:8px; }
+.stagehead p { font-size:12px; color:var(--muted); margin-top:2px; }
+.table-responsive { width:100%; overflow-x:auto; margin-top:12px; }
+table { width:100%; border-collapse:collapse; font-size:12.5px; text-align:left; }
+th { background:#f1f5f9; padding:11px 10px; font-weight:700; color:#475569; border-bottom:1px solid var(--border); }
+td { padding:11px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+tr:hover td { background:#f8fafc; }
 
-        .badge-day {
-            font-size: 11.5px;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-weight: 700;
-            display: inline-block;
-            margin-top: 4px;
-        }
-        .badge-day.match { background: #dcfce7; color: #166534; }
-        .badge-day.mismatch { background: #fef3c7; color: #92400e; }
+.btn-action { padding:5px 9px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; border:1px solid var(--border); background:#f8fafc; color:var(--navy); display:inline-flex; align-items:center; gap:4px; }
+.btn-action:hover { background:#e2e8f0; }
+.btn-checkout { background:#fef3c7; border-color:#fde68a; color:#b45309; }
+.btn-checkout:hover { background:#fde68a; }
+.btn-danger { background:#fee2e2; border-color:#fecdd3; color:#991b1b; }
+.btn-danger:hover { background:#fecdd3; }
+.btn-send-all { background:var(--navy); color:white; border:none; padding:10px 18px; border-radius:8px; font-size:13px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
+.btn-send-all:hover { background:var(--navy-dark); }
+.btn-send-all:disabled { opacity:0.5; cursor:not-allowed; }
+.credit-tag { background:#fef3c7; color:#92400e; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; }
 
-        .btn-submit-work {
-            width: 100%;
-            background: var(--prodip-olive);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 800;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 10px;
-            transition: 0.15s;
-        }
-        .btn-submit-work:hover { background: var(--prodip-olive-hover); }
+.empty-state { text-align:center; padding:14px; color:#94a3b8; }
 
-        /* Staging Table */
-        .table-responsive { width: 100%; overflow-x: auto; margin-top: 12px; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
-        th { background: #f1f5f9; padding: 12px 10px; font-weight: 700; color: #475569; border-bottom: 1px solid var(--prodip-border); }
-        td { padding: 12px 10px; border-bottom: 1px solid var(--prodip-border); }
-        tr:hover td { background: #f8fafc; }
+/* ─── MODAL (bottom sheet on mobile) ─── */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); backdrop-filter:blur(3px); z-index:9999; display:none; justify-content:center; align-items:center; padding:20px; }
+.modal-overlay.active { display:flex; }
+.modal { background:white; border-radius:14px; width:100%; max-width:500px; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,0.2); max-height:90vh; overflow-y:auto; }
+.modal h3 { font-size:16px; color:var(--navy); margin-bottom:14px; font-weight:800; display:flex; align-items:center; gap:8px; }
 
-        .btn-action {
-            padding: 5px 9px;
-            border-radius: 6px;
-            font-size: 11.5px;
-            font-weight: 700;
-            cursor: pointer;
-            border: 1px solid var(--prodip-border);
-            background: #f8fafc;
-            color: var(--prodip-navy);
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .btn-action:hover { background: #e2e8f0; }
-        .btn-checkout { background: #fef3c7; border-color: #fde68a; color: #b45309; }
-        .btn-checkout:hover { background: #fde68a; }
-        .btn-danger { background: #fee2e2; border-color: #fecdd3; color: #991b1b; }
-        .btn-danger:hover { background: #fecdd3; }
+#toast { position:fixed; bottom:24px; right:24px; background:var(--navy); color:white; padding:11px 18px; border-radius:8px; font-size:13px; font-weight:600; box-shadow:0 4px 12px rgba(0,0,0,0.15); display:none; align-items:center; gap:8px; z-index:10000; }
 
-        .btn-send-all {
-            background: var(--prodip-navy);
-            color: white;
-            border: none;
-            padding: 11px 18px;
-            border-radius: 8px;
-            font-size: 13.5px;
-            font-weight: 800;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: 0.15s;
-        }
-        .btn-send-all:hover { background: var(--prodip-navy-dark); }
-
-        /* Modal */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.45);
-            backdrop-filter: blur(3px);
-            z-index: 9999;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal {
-            background: white;
-            border-radius: 14px;
-            width: 100%;
-            max-width: 500px;
-            padding: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        #toast {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            background: var(--prodip-navy);
-            color: white;
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-size: 13px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            display: none;
-            z-index: 10000;
-        }
-
-        @media (max-width: 900px) {
-            .grid-layout { grid-template-columns: 1fr; }
-        }
-    </style>
+@media (max-width:900px) {
+    .grid-layout { grid-template-columns:1fr; }
+}
+@media (max-width:640px) {
+    .modal-overlay { align-items:flex-end; padding:0; }
+    .modal { max-width:none; border-radius:18px 18px 0 0; max-height:85vh; }
+}
+</style>
 </head>
 <body>
 
-    <!-- ─── 1. COORDINATOR LOGIN LOCK ─── -->
-    <div id="coordLockScreen">
-        <div class="lock-box">
-            <div class="lock-badge"><i class="fas fa-clipboard-check"></i></div>
-            <h2>Coordinator Desk Login</h2>
-            <p>Verification is restricted to active Coordinators (Level 3+) and Admins.</p>
+<div id="coordLockScreen">
+    <div class="lock-box">
+        <div class="lock-badge"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></div>
+        <h2>Coordinator Desk Login</h2>
+        <p>Restricted to active Coordinators (Level 3+) and Admins.</p>
 
-            <div class="lock-field">
-                <label>Coordinator Student ID</label>
-                <input type="text" id="coordLockId" placeholder="e.g. 2101103" />
-            </div>
-
-            <div class="lock-field">
-                <label>Password</label>
-                <input type="password" id="coordLockPass" placeholder="••••••••" />
-            </div>
-
-            <button class="btn-lock-submit" onclick="verifyCoordinatorLogin()">
-                <i class="fas fa-sign-in-alt"></i> Verify & Open Desk
-            </button>
-            <br />
-            <a href="index.html" style="margin-top:14px; display:inline-block; font-size:12.5px; color:#64748b; text-decoration:none;"><i class="fas fa-arrow-left"></i> Return to Volunteer Portal</a>
+        <div class="lock-field">
+            <label>Email</label>
+            <input type="email" id="coordLockEmail" placeholder="you@cuet.ac.bd" autocomplete="username" />
         </div>
+        <div class="lock-field">
+            <label>Password</label>
+            <input type="password" id="coordLockPass" placeholder="••••••••" autocomplete="current-password" />
+            <span id="coordLoginErr" class="field-errmsg" style="display:none;"></span>
+        </div>
+
+        <button class="btn-lock-submit" id="coordLoginBtn" onclick="verifyCoordinatorLogin()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+            Verify &amp; Open Desk
+        </button>
+        <a href="index.html" class="lock-return">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+            Return to Volunteer Portal
+        </a>
     </div>
+</div>
 
-    <!-- ─── 2. MAIN COORDINATOR DESK ─── -->
-    <div id="coordAppContainer">
-        <header class="ribbon-bar">
-            <div class="ribbon-brand">
-                <i class="fas fa-tasks" style="font-size: 22px; color: var(--prodip-gold);"></i>
-                <div>
-                    <h1>প্রদীপ Coordination Desk</h1>
-                    <span>Daily Session Execution & Attendance Verification</span>
+<div id="coordAppContainer">
+    <header class="ribbon-bar">
+        <div class="ribbon-brand">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
+            <div>
+                <h1>প্রদীপ Coordination Desk</h1>
+                <span>Daily Session Execution &amp; Attendance Verification</span>
+            </div>
+        </div>
+        <div class="ribbon-actions">
+            <div class="coord-pill"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 11 2 2 4-4"/></svg> <span id="activeCoordLabel">Coordinator</span></div>
+            <a href="admin.html" class="btn-nav"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg> Admin</a>
+            <button class="btn-nav btn-nav-exit" onclick="coordinatorSignOut()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Exit</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="grid-layout">
+            <div class="card">
+                <h2 class="card-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Log Volunteer Work</h2>
+
+                <div class="field">
+                    <label>Activity Type</label>
+                    <select id="fieldActivity" onchange="onActivityChange()">
+                        <option value="">Loading activities...</option>
+                    </select>
                 </div>
+                <div class="field">
+                    <label>Instructor</label>
+                    <select id="fieldInstructor" onchange="onInstructorChange()">
+                        <option value="">Select Instructor...</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Replacement (If Any)</label>
+                    <select id="fieldReplacement">
+                        <option value="">None (Regular Instructor)</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="field">
+                        <label>Session Date</label>
+                        <input type="date" id="fieldDate" onchange="onDateChange()" />
+                    </div>
+                    <div class="field">
+                        <label>Day of Week</label>
+                        <input type="text" id="fieldDayOfWeek" readonly style="background:#f1f5f9; font-weight:700;" />
+                    </div>
+                </div>
+                <div id="designatedDayBadgeWrap" style="margin-top:-6px; margin-bottom:12px;"></div>
+
+                <div class="form-row">
+                    <div class="field">
+                        <label>In Time</label>
+                        <input type="time" id="fieldInTime" />
+                    </div>
+                    <div class="field" id="outTimeFieldWrap">
+                        <label>Out Time (Optional now)</label>
+                        <input type="time" id="fieldOutTime" onchange="validateTimeRange()" />
+                        <span id="timeRangeErr" class="field-errmsg" style="display:none;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+                            Out time can't be before in time
+                        </span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>Topic Covered / Class Notes</label>
+                    <textarea id="fieldTopic" rows="2" placeholder="e.g. Basic addition, reading exercise..."></textarea>
+                </div>
+
+                <button class="btn-submit-work" onclick="addWorkToStaging()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+                    Log Volunteer Work
+                </button>
             </div>
-            <div class="ribbon-actions">
-                <div class="coord-pill"><i class="fas fa-user-check" style="color:var(--prodip-olive);"></i> <span id="activeCoordLabel">Coordinator</span></div>
-                <a href="admin.html" class="btn-nav"><i class="fas fa-shield-alt"></i> Admin</a>
-                <button class="btn-nav btn-nav-exit" onclick="coordinatorSignOut()"><i class="fas fa-lock"></i> Exit</button>
-            </div>
-        </header>
 
-        <div class="container">
-            <div class="grid-layout">
-                
-                <!-- LEFT: LOG VOLUNTEER WORK FORM -->
-                <div class="card">
-                    <h2 class="card-title"><i class="fas fa-edit" style="color:var(--prodip-olive);"></i> Log Volunteer Work</h2>
-                    
-                    <!-- 1. Activity Type First -->
-                    <div class="field">
-                        <label>Activity Type</label>
-                        <select id="fieldActivity" onchange="onActivityChange()">
-                            <option value="">Loading activities...</option>
-                        </select>
+            <div class="card">
+                <div class="stagehead">
+                    <div>
+                        <h2><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg> Staging Verification Area</h2>
+                        <p>Review ongoing and completed records before submitting for Master approval.</p>
                     </div>
-
-                    <!-- 2. Instructor -->
-                    <div class="field">
-                        <label>Instructor</label>
-                        <select id="fieldInstructor" onchange="onInstructorChange()">
-                            <option value="">Select Instructor...</option>
-                        </select>
-                    </div>
-
-                    <!-- 3. Replacement -->
-                    <div class="field">
-                        <label>Replacement (If Any)</label>
-                        <select id="fieldReplacement">
-                            <option value="">None (Regular Instructor)</option>
-                        </select>
-                    </div>
-
-                    <!-- 4. Date & Day of Week -->
-                    <div class="form-row">
-                        <div class="field">
-                            <label>Session Date</label>
-                            <input type="date" id="fieldDate" onchange="onDateChange()" />
-                        </div>
-                        <div class="field">
-                            <label>Day of Week</label>
-                            <input type="text" id="fieldDayOfWeek" readonly style="background:#f1f5f9; font-weight:700;" />
-                        </div>
-                    </div>
-                    <div id="designatedDayBadgeWrap" style="margin-top:-6px; margin-bottom:12px;"></div>
-
-                    <!-- 5. In Time & Out Time -->
-                    <div class="form-row">
-                        <div class="field">
-                            <label>In Time</label>
-                            <input type="time" id="fieldInTime" />
-                        </div>
-                        <div class="field">
-                            <label>Out Time (Optional now)</label>
-                            <input type="time" id="fieldOutTime" />
-                        </div>
-                    </div>
-
-                    <!-- 6. Topic Covered -->
-                    <div class="field">
-                        <label>Topic Covered / Class Notes</label>
-                        <textarea id="fieldTopic" rows="2" placeholder="e.g. Basic addition, reading exercise..."></textarea>
-                    </div>
-
-                    <!-- Action Button -->
-                    <button class="btn-submit-work" onclick="addWorkToStaging()">
-                        <i class="fas fa-plus-circle"></i> Log Volunteer Work
+                    <button class="btn-send-all" id="sendAllBtn" onclick="sendToSeniorCoordinator()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>
+                        Submit Batch for Approval
                     </button>
                 </div>
 
-                <!-- RIGHT: STAGING QUEUE & DISPATCH -->
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--prodip-border); padding-bottom:12px;">
-                        <div>
-                            <h2 style="font-size:18px; font-weight:800; color:var(--prodip-navy);"><i class="fas fa-clipboard-list" style="color:var(--prodip-navy);"></i> Staging Verification Area</h2>
-                            <p style="font-size:12px; color:var(--prodip-muted);">Review ongoing and completed records before submitting to Senior Coordinator.</p>
-                        </div>
-                        <button class="btn-send-all" onclick="sendToSeniorCoordinator()">
-                            <i class="fas fa-paper-plane"></i> Send to Senior Coordinator
-                        </button>
-                    </div>
-
-                    <div class="table-responsive">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Date & Day</th>
-                                    <th>Activity</th>
-                                    <th>Instructor / Credit</th>
-                                    <th>Timing</th>
-                                    <th>Topic</th>
-                                    <th>Verified By</th>
-                                    <th style="text-align:right;">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="stagingTableBody">
-                                <tr><td colspan="7" style="text-align:center; padding:24px; color:#94a3b8;">No volunteer work currently staged.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr><th>Date &amp; Day</th><th>Activity</th><th>Instructor / Credit</th><th>Timing</th><th>Topic</th><th style="text-align:right;">Action</th></tr>
+                        </thead>
+                        <tbody id="stagingTableBody">
+                            <tr><td colspan="6" class="empty-state">No volunteer work currently staged.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
-
             </div>
         </div>
     </div>
+</div>
 
-    <!-- ─── MODAL: EDIT STAGED WORK ─── -->
-    <div class="modal-overlay" id="editStagedModal">
-        <div class="modal">
-            <h3 style="font-size:17px; color:var(--prodip-navy); margin-bottom:14px;"><i class="fas fa-edit"></i> Edit Staged Record</h3>
-            <input type="hidden" id="editItemIndex" />
+<div class="modal-overlay" id="editStagedModal">
+    <div class="modal">
+        <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Edit Staged Record</h3>
+        <input type="hidden" id="editItemIndex" />
 
-            <div class="field">
-                <label>Activity</label>
-                <select id="editActivity"></select>
-            </div>
+        <div class="field"><label>Activity</label><select id="editActivity"></select></div>
+        <div class="form-row">
+            <div class="field"><label>Instructor</label><select id="editInstructor"></select></div>
+            <div class="field"><label>Replacement</label><select id="editReplacement"></select></div>
+        </div>
+        <div class="form-row">
+            <div class="field"><label>In Time</label><input type="time" id="editInTime" /></div>
+            <div class="field"><label>Out Time</label><input type="time" id="editOutTime" /></div>
+        </div>
+        <div class="field"><label>Topic Covered</label><textarea id="editTopic" rows="2"></textarea></div>
 
-            <div class="form-row">
-                <div class="field">
-                    <label>Instructor</label>
-                    <select id="editInstructor"></select>
-                </div>
-                <div class="field">
-                    <label>Replacement</label>
-                    <select id="editReplacement"></select>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="field">
-                    <label>In Time</label>
-                    <input type="time" id="editInTime" />
-                </div>
-                <div class="field">
-                    <label>Out Time</label>
-                    <input type="time" id="editOutTime" />
-                </div>
-            </div>
-
-            <div class="field">
-                <label>Topic Covered</label>
-                <textarea id="editTopic" rows="2"></textarea>
-            </div>
-
-            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
-                <button class="btn-action" onclick="closeEditModal()">Cancel</button>
-                <button class="btn-action btn-submit-work" style="margin:0; width:auto; padding:8px 16px;" onclick="saveStagedEdit()">Save Changes</button>
-            </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+            <button class="btn-action" onclick="closeEditModal()">Cancel</button>
+            <button class="btn-action btn-submit-work" style="margin:0; width:auto; padding:8px 16px;" onclick="saveStagedEdit()">Save Changes</button>
         </div>
     </div>
+</div>
 
-    <div id="toast"></div>
+<div id="toast"></div>
 
-    <script>
-        const SUPABASE_URL = 'https://knslzwpmtoealtylyquz.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_5cE65J23A-wlYAwSGQXy8g_1mduc4lT';
-        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+<script>
+const sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
 
-        let activeCoordinator = null;
-        let cachedVolunteers = [];
-        let cachedActivities = [];
-        let stagingQueue = [];
+let activeCoordinator = null;
+let cachedVolunteers = [];
+let cachedActivities = [];
+let stagingQueue = [];
 
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 2600);
-        }
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg> ${msg}`;
+    t.style.display = 'flex';
+    setTimeout(() => t.style.display = 'none', 2600);
+}
 
-        /* ─── 1. COORDINATOR AUTHENTICATION ─── */
-        async function verifyCoordinatorLogin() {
-            const cId = document.getElementById('coordLockId').value.trim();
-            const cPass = document.getElementById('coordLockPass').value.trim();
+/* ─── AUTHENTICATION ─── */
+function setLoginError(msg) {
+    const box = document.getElementById('coordLoginErr');
+    const input = document.getElementById('coordLockPass');
+    if (msg) { box.textContent = msg; box.style.display = 'flex'; input.classList.add('field-err'); }
+    else { box.style.display = 'none'; input.classList.remove('field-err'); }
+}
 
-            if (!cId || !cPass) return alert('Enter Student ID and Password.');
-            if (cPass !== 'prodip2026') return alert('Incorrect password.');
+window.verifyCoordinatorLogin = async function() {
+    const email = document.getElementById('coordLockEmail').value.trim();
+    const pass = document.getElementById('coordLockPass').value;
+    if (!email || !pass) return setLoginError('Enter email and password.');
 
-            const { data, error } = await sb.from('volunteers').select('*').eq('student_id', cId).single();
-            if (error || !data) return alert('User not found on roster.');
+    const btn = document.getElementById('coordLoginBtn');
+    btn.disabled = true;
+    const { error: authErr } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (authErr) { btn.disabled = false; return setLoginError('Incorrect email or password.'); }
 
-            if (data.role_level < 3) {
-                return alert('Access Denied: Only designated Coordinators (Level 3+) or Admins can access this desk.');
-            }
+    const { data: { session } } = await sb.auth.getSession();
+    const { data, error } = await sb.from('volunteers').select('*').eq('auth_user_id', session.user.id).single();
+    btn.disabled = false;
 
-            activeCoordinator = data;
-            localStorage.setItem('prodip_coord_auth_id', cId);
-            unlockCoordinatorDesk();
-        }
+    if (error || !data) { await sb.auth.signOut(); return setLoginError('This account is not on the volunteer roster.'); }
+    if (data.role_level < 3) { await sb.auth.signOut(); return setLoginError('Access denied — Coordinator level (3+) required.'); }
 
-        function unlockCoordinatorDesk() {
-            document.getElementById('coordLockScreen').style.display = 'none';
-            document.getElementById('coordAppContainer').style.display = 'flex';
-            document.getElementById('activeCoordLabel').textContent = `${activeCoordinator.full_name} (${activeCoordinator.student_id})`;
-            initDeskData();
-        }
+    activeCoordinator = data;
+    unlockCoordinatorDesk();
+};
 
-        window.coordinatorSignOut = function() {
-            if (confirm('Sign out and lock Coordinator Desk?')) {
-                localStorage.removeItem('prodip_coord_auth_id');
-                activeCoordinator = null;
-                document.getElementById('coordAppContainer').style.display = 'none';
-                document.getElementById('coordLockScreen').style.display = 'flex';
-                showToast('Desk locked.');
-            }
-        };
+function unlockCoordinatorDesk() {
+    document.getElementById('coordLockScreen').style.display = 'none';
+    document.getElementById('coordAppContainer').style.display = 'flex';
+    document.getElementById('activeCoordLabel').textContent = `${activeCoordinator.full_name} (${activeCoordinator.student_id})`;
+    initDeskData();
+}
 
-        // Auto-restore active session if already authenticated
-        (async function checkExistingCoordSession() {
-            const savedId = localStorage.getItem('prodip_coord_auth_id');
-            if (savedId) {
-                const { data } = await sb.from('volunteers').select('*').eq('student_id', savedId).single();
-                if (data && data.role_level >= 3) {
-                    activeCoordinator = data;
-                    unlockCoordinatorDesk();
-                }
-            }
-        })();
+window.coordinatorSignOut = async function() {
+    if (!confirm('Sign out and lock Coordinator Desk?')) return;
+    await sb.auth.signOut();
+    activeCoordinator = null;
+    stagingQueue = [];
+    document.getElementById('coordAppContainer').style.display = 'none';
+    document.getElementById('coordLockScreen').style.display = 'flex';
+    showToast('Desk locked.');
+};
 
-        /* ─── 2. DATA INITIALIZATION & FORM DEFAULTS ─── */
-        async function initDeskData() {
-            const [vRes, aRes] = await Promise.all([
-                sb.from('volunteers').select('*').order('full_name'),
-                sb.from('activities').select('*').order('title')
-            ]);
+(async function checkExistingSession() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    const { data } = await sb.from('volunteers').select('*').eq('auth_user_id', session.user.id).single();
+    if (data && data.role_level >= 3) {
+        activeCoordinator = data;
+        unlockCoordinatorDesk();
+    }
+})();
 
-            cachedVolunteers = vRes.data || [];
-            cachedActivities = (aRes.data && aRes.data.length > 0) ? aRes.data : [
-                { title: 'Teaching and Mentorship', category: 'Academic' },
-                { title: 'Medical Camp Volunteer', category: 'Medical' }
-            ];
+/* ─── DATA INIT ─── */
+async function initDeskData() {
+    const [vRes, aRes] = await Promise.all([
+        sb.from('volunteers').select('*').order('full_name'),
+        sb.from('activities').select('*').eq('status', 'Active').order('title')
+    ]);
 
-            // 1. Populate Activities (Always selects first / Teaching and Mentorship)
-            const actSelect = document.getElementById('fieldActivity');
-            actSelect.innerHTML = cachedActivities.map((a, idx) => 
-                `<option value="${a.title}" ${idx === 0 ? 'selected' : ''}>${a.title}</option>`
-            ).join('');
+    cachedVolunteers = vRes.data || [];
+    cachedActivities = aRes.data || [];
 
-            // 2. Populate Volunteers Dropdowns
-            const vOptions = cachedVolunteers.map(v => 
-                `<option value="${v.student_id}">${v.full_name} (${v.student_id}) - ${v.department}</option>`
-            ).join('');
+    const actSelect = document.getElementById('fieldActivity');
+    actSelect.innerHTML = cachedActivities.length
+        ? cachedActivities.map((a, idx) => `<option value="${a.title}" ${idx === 0 ? 'selected' : ''}>${a.title}</option>`).join('')
+        : '<option value="">No active activities — ask Admin to add one</option>';
 
-            document.getElementById('fieldInstructor').innerHTML = '<option value="">Select Instructor...</option>' + vOptions;
-            document.getElementById('fieldReplacement').innerHTML = '<option value="">None (Regular Instructor)</option>' + vOptions;
+    const vOptions = cachedVolunteers.map(v => `<option value="${v.student_id}">${v.full_name} (${v.student_id}) - ${v.department || ''}</option>`).join('');
+    document.getElementById('fieldInstructor').innerHTML = '<option value="">Select Instructor...</option>' + vOptions;
+    document.getElementById('fieldReplacement').innerHTML = '<option value="">None (Regular Instructor)</option>' + vOptions;
 
-            // 3. Set Date & Default Start Time
-            const today = new Date();
-            document.getElementById('fieldDate').value = today.toISOString().split('T')[0];
-            onDateChange();
+    const today = new Date();
+    document.getElementById('fieldDate').value = today.toISOString().split('T')[0];
+    onDateChange();
 
-            const hours = String(today.getHours()).padStart(2, '0');
-            const minutes = String(today.getMinutes()).padStart(2, '0');
-            document.getElementById('fieldInTime').value = `${hours}:${minutes}`;
-        }
+    const hh = String(today.getHours()).padStart(2, '0');
+    const mm = String(today.getMinutes()).padStart(2, '0');
+    document.getElementById('fieldInTime').value = `${hh}:${mm}`;
+}
 
-        window.onDateChange = function() {
-            const dateVal = document.getElementById('fieldDate').value;
-            if (!dateVal) return;
-            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            const d = new Date(dateVal);
-            const dayName = days[d.getDay()];
-            document.getElementById('fieldDayOfWeek').value = dayName;
-            checkDesignatedDay();
-        };
+window.onDateChange = function() {
+    const dateVal = document.getElementById('fieldDate').value;
+    if (!dateVal) return;
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    document.getElementById('fieldDayOfWeek').value = days[new Date(dateVal).getDay()];
+    checkDesignatedDay();
+};
 
-        window.onInstructorChange = function() {
-            checkDesignatedDay();
-        };
+window.onInstructorChange = function() { checkDesignatedDay(); };
 
-        function checkDesignatedDay() {
-            const instId = document.getElementById('fieldInstructor').value;
-            const dayName = document.getElementById('fieldDayOfWeek').value;
-            const badgeWrap = document.getElementById('designatedDayBadgeWrap');
+function checkDesignatedDay() {
+    const instId = document.getElementById('fieldInstructor').value;
+    const dayName = document.getElementById('fieldDayOfWeek').value;
+    const badgeWrap = document.getElementById('designatedDayBadgeWrap');
+    if (!instId || !dayName) { badgeWrap.innerHTML = ''; return; }
 
-            if (!instId || !dayName) {
-                badgeWrap.innerHTML = '';
-                return;
-            }
+    const instructor = cachedVolunteers.find(v => v.student_id === instId);
+    const designatedDays = instructor ? (instructor.designated_days || []) : [];
+    const isMatch = designatedDays.includes(dayName);
 
-            const instructor = cachedVolunteers.find(v => v.student_id === instId);
-            const designatedDays = instructor ? (instructor.designated_days || []) : [];
-            const isMatch = designatedDays.includes(dayName);
+    badgeWrap.innerHTML = isMatch
+        ? `<span class="badge-day match"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg> Designated Day (${dayName})</span>`
+        : `<span class="badge-day mismatch"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg> Non-Designated (Assigned: ${designatedDays.join(', ') || 'None'})</span>`;
+}
 
-            badgeWrap.innerHTML = isMatch
-                ? `<span class="badge-day match"><i class="fas fa-check-circle"></i> Designated Day (${dayName})</span>`
-                : `<span class="badge-day mismatch"><i class="fas fa-exclamation-circle"></i> Non-Designated Day (Assigned: ${designatedDays.join(', ') || 'None'})</span>`;
-        }
+window.validateTimeRange = function() {
+    const inT = document.getElementById('fieldInTime').value;
+    const outT = document.getElementById('fieldOutTime').value;
+    const wrap = document.getElementById('outTimeFieldWrap');
+    const err = document.getElementById('timeRangeErr');
+    const bad = inT && outT && outT < inT;
+    wrap.classList.toggle('field-err', bad);
+    err.style.display = bad ? 'flex' : 'none';
+    return !bad;
+};
 
-        /* ─── 3. STAGING AREA WORKFLOW ─── */
-        window.addWorkToStaging = function() {
-            const actTitle = document.getElementById('fieldActivity').value;
-            const instId = document.getElementById('fieldInstructor').value;
-            const repId = document.getElementById('fieldReplacement').value;
-            const sDate = document.getElementById('fieldDate').value;
-            const dayOfWeek = document.getElementById('fieldDayOfWeek').value;
-            const inTime = document.getElementById('fieldInTime').value;
-            const outTime = document.getElementById('fieldOutTime').value;
-            const topic = document.getElementById('fieldTopic').value.trim();
+/* ─── STAGING WORKFLOW ─── */
+window.addWorkToStaging = function() {
+    const actTitle = document.getElementById('fieldActivity').value;
+    const instId = document.getElementById('fieldInstructor').value;
+    const repId = document.getElementById('fieldReplacement').value;
+    const sDate = document.getElementById('fieldDate').value;
+    const dayOfWeek = document.getElementById('fieldDayOfWeek').value;
+    const inTime = document.getElementById('fieldInTime').value;
+    const outTime = document.getElementById('fieldOutTime').value;
+    const topic = document.getElementById('fieldTopic').value.trim();
 
-            if (!actTitle) return alert('Select an activity.');
-            if (!instId) return alert('Select the instructor.');
-            if (!sDate) return alert('Select session date.');
-            if (!inTime) return alert('Provide In-Time.');
+    if (!actTitle) return alert('Select an activity.');
+    if (!instId) return alert('Select the instructor.');
+    if (!sDate) return alert('Select session date.');
+    if (!inTime) return alert('Provide In-Time.');
+    if (!validateTimeRange()) return;
 
-            const instructor = cachedVolunteers.find(v => v.student_id === instId);
-            const replacement = repId ? cachedVolunteers.find(v => v.student_id === repId) : null;
-            const isDesignated = instructor && (instructor.designated_days || []).includes(dayOfWeek);
+    const instructor = cachedVolunteers.find(v => v.student_id === instId);
+    const replacement = repId ? cachedVolunteers.find(v => v.student_id === repId) : null;
+    const isDesignated = instructor && (instructor.designated_days || []).includes(dayOfWeek);
 
-            const record = {
-                id: 'stage_' + Date.now(),
-                activity_title: actTitle,
-                instructor_id: instId,
-                instructor_name: instructor ? instructor.full_name : 'Unknown',
-                replacement_id: repId || null,
-                replacement_name: replacement ? replacement.full_name : null,
-                credited_to_id: replacement ? replacement.student_id : instId,
-                credited_to_name: replacement ? replacement.full_name : (instructor ? instructor.full_name : 'Unknown'),
-                session_date: sDate,
-                day_of_week: dayOfWeek,
-                in_time: inTime,
-                out_time: outTime || null,
-                topic_covered: topic || 'Teaching and mentoring syllabus covered',
-                is_designated_day: isDesignated,
-                verified_by: `${activeCoordinator.full_name} (${activeCoordinator.student_id})`,
-                validator_id: activeCoordinator.student_id
-            };
+    stagingQueue.unshift({
+        activity_title: actTitle,
+        instructor_id: instId,
+        instructor_name: instructor ? instructor.full_name : 'Unknown',
+        replacement_id: repId || null,
+        replacement_name: replacement ? replacement.full_name : null,
+        credited_to_id: replacement ? replacement.student_id : instId,
+        session_date: sDate,
+        day_of_week: dayOfWeek,
+        in_time: inTime,
+        out_time: outTime || null,
+        topic_covered: topic || null,
+        is_designated_day: !!isDesignated
+    });
 
-            stagingQueue.unshift(record);
-            renderStagingTable();
-            showToast('Volunteer work logged to staging!');
+    renderStagingTable();
+    showToast('Volunteer work logged to staging!');
+    document.getElementById('fieldTopic').value = '';
+    document.getElementById('fieldOutTime').value = '';
+};
 
-            // Clear inputs for next log
-            document.getElementById('fieldTopic').value = '';
-            document.getElementById('fieldOutTime').value = '';
-        };
+function renderStagingTable() {
+    const tbody = document.getElementById('stagingTableBody');
+    document.getElementById('sendAllBtn').disabled = stagingQueue.length === 0;
 
-        function renderStagingTable() {
-            const tbody = document.getElementById('stagingTableBody');
-            if (!stagingQueue.length) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:#94a3b8;">No volunteer work currently staged.</td></tr>';
-                return;
-            }
+    if (!stagingQueue.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No volunteer work currently staged.</td></tr>';
+        return;
+    }
 
-            tbody.innerHTML = stagingQueue.map((item, index) => {
-                const checkoutBtn = !item.out_time 
-                    ? `<button class="btn-action btn-checkout" onclick="performCheckout(${index})"><i class="fas fa-sign-out-alt"></i> Checkout</button>`
-                    : `<span style="font-size:11px; font-weight:700; color:var(--prodip-olive);"><i class="fas fa-check"></i> Out: ${item.out_time}</span>`;
+    tbody.innerHTML = stagingQueue.map((item, index) => {
+        const checkoutBtn = !item.out_time
+            ? `<button class="btn-action btn-checkout" onclick="performCheckout(${index})"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg> Checkout</button>`
+            : `<span style="font-size:11px; font-weight:700; color:var(--olive);">Out: ${item.out_time}</span>`;
 
-                const creditLabel = item.replacement_id 
-                    ? `<span style="color:#b45309;"><b>${item.replacement_name}</b> (Replaced ${item.instructor_name})</span>`
-                    : `<b>${item.instructor_name}</b>`;
+        const creditLabel = item.replacement_id
+            ? `<b>${item.replacement_name}</b> <span class="credit-tag">Replaced ${item.instructor_name}</span>`
+            : `<b>${item.instructor_name}</b>`;
 
-                return `
-                    <tr>
-                        <td><b>${item.session_date}</b><br><small style="color:#64748b;">${item.day_of_week}</small></td>
-                        <td><b>${item.activity_title}</b></td>
-                        <td>${creditLabel}<br><small style="color:#64748b;">Credit: ${item.credited_to_id}</small></td>
-                        <td>In: <b>${item.in_time}</b><br>${item.out_time ? 'Out: <b>' + item.out_time + '</b>' : '<span style="color:#b45309; font-size:11px;">Ongoing</span>'}</td>
-                        <td>${item.topic_covered}</td>
-                        <td><small style="color:var(--prodip-navy); font-weight:600;">${item.verified_by}</small></td>
-                        <td style="text-align:right;">
-                            <div style="display:flex; justify-content:flex-end; gap:5px; flex-wrap:wrap;">
-                                ${checkoutBtn}
-                                <button class="btn-action" onclick="openEditModal(${index})"><i class="fas fa-edit"></i></button>
-                                <button class="btn-action btn-danger" onclick="deleteStaged(${index})"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
+        return `<tr>
+            <td><b>${item.session_date}</b><br><small style="color:#64748b;">${item.day_of_week}</small></td>
+            <td><b>${item.activity_title}</b></td>
+            <td>${creditLabel}<br><small style="color:#64748b;">Credit: ${item.credited_to_id}</small></td>
+            <td>In: <b>${item.in_time}</b><br>${item.out_time ? 'Out: <b>' + item.out_time + '</b>' : '<span style="color:#b45309; font-size:11px;">Ongoing</span>'}</td>
+            <td>${item.topic_covered || '<span style="color:#94a3b8;">—</span>'}</td>
+            <td style="text-align:right;">
+                <div style="display:flex; justify-content:flex-end; gap:5px; flex-wrap:wrap;">
+                    ${checkoutBtn}
+                    <button class="btn-action" onclick="openEditModal(${index})"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+                    <button class="btn-action btn-danger" onclick="deleteStaged(${index})"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
 
-        window.performCheckout = function(index) {
-            const now = new Date();
-            const hh = String(now.getHours()).padStart(2, '0');
-            const mm = String(now.getMinutes()).padStart(2, '0');
-            stagingQueue[index].out_time = `${hh}:${mm}`;
-            renderStagingTable();
-            showToast('Checked out successfully!');
-        };
+window.performCheckout = function(index) {
+    const now = new Date();
+    stagingQueue[index].out_time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    renderStagingTable();
+    showToast('Checked out successfully!');
+};
 
-        window.deleteStaged = function(index) {
-            stagingQueue.splice(index, 1);
-            renderStagingTable();
-        };
+window.deleteStaged = function(index) {
+    stagingQueue.splice(index, 1);
+    renderStagingTable();
+};
 
-        /* ─── 4. EDIT STAGED WORK ─── */
-        window.openEditModal = function(index) {
-            const item = stagingQueue[index];
-            document.getElementById('editItemIndex').value = index;
+/* ─── EDIT STAGED WORK ─── */
+window.openEditModal = function(index) {
+    const item = stagingQueue[index];
+    document.getElementById('editItemIndex').value = index;
 
-            document.getElementById('editActivity').innerHTML = cachedActivities.map(a => 
-                `<option value="${a.title}" ${a.title === item.activity_title ? 'selected' : ''}>${a.title}</option>`
-            ).join('');
+    document.getElementById('editActivity').innerHTML = cachedActivities.map(a =>
+        `<option value="${a.title}" ${a.title === item.activity_title ? 'selected' : ''}>${a.title}</option>`).join('');
 
-            const vOptions = cachedVolunteers.map(v => 
-                `<option value="${v.student_id}">${v.full_name} (${v.student_id})</option>`
-            ).join('');
+    const vOptions = cachedVolunteers.map(v => `<option value="${v.student_id}">${v.full_name} (${v.student_id})</option>`).join('');
+    document.getElementById('editInstructor').innerHTML = vOptions;
+    document.getElementById('editInstructor').value = item.instructor_id;
+    document.getElementById('editReplacement').innerHTML = '<option value="">None (Regular)</option>' + vOptions;
+    document.getElementById('editReplacement').value = item.replacement_id || '';
+    document.getElementById('editInTime').value = item.in_time || '';
+    document.getElementById('editOutTime').value = item.out_time || '';
+    document.getElementById('editTopic').value = item.topic_covered || '';
 
-            document.getElementById('editInstructor').innerHTML = vOptions;
-            document.getElementById('editInstructor').value = item.instructor_id;
+    document.getElementById('editStagedModal').classList.add('active');
+};
 
-            document.getElementById('editReplacement').innerHTML = '<option value="">None (Regular)</option>' + vOptions;
-            document.getElementById('editReplacement').value = item.replacement_id || '';
+window.closeEditModal = function() {
+    document.getElementById('editStagedModal').classList.remove('active');
+};
 
-            document.getElementById('editInTime').value = item.in_time || '';
-            document.getElementById('editOutTime').value = item.out_time || '';
-            document.getElementById('editTopic').value = item.topic_covered || '';
+window.saveStagedEdit = function() {
+    const idx = document.getElementById('editItemIndex').value;
+    const item = stagingQueue[idx];
+    const inTime = document.getElementById('editInTime').value;
+    const outTime = document.getElementById('editOutTime').value;
+    if (inTime && outTime && outTime < inTime) return alert("Out time can't be before in time.");
 
-            document.getElementById('editStagedModal').classList.add('active');
-        };
+    const instId = document.getElementById('editInstructor').value;
+    const repId = document.getElementById('editReplacement').value;
+    const instructor = cachedVolunteers.find(v => v.student_id === instId);
+    const replacement = repId ? cachedVolunteers.find(v => v.student_id === repId) : null;
 
-        window.closeEditModal = function() {
-            document.getElementById('editStagedModal').classList.remove('active');
-        };
+    item.activity_title = document.getElementById('editActivity').value;
+    item.instructor_id = instId;
+    item.instructor_name = instructor ? instructor.full_name : 'Unknown';
+    item.replacement_id = repId || null;
+    item.replacement_name = replacement ? replacement.full_name : null;
+    item.credited_to_id = replacement ? replacement.student_id : instId;
+    item.in_time = inTime;
+    item.out_time = outTime || null;
+    item.topic_covered = document.getElementById('editTopic').value.trim();
 
-        window.saveStagedEdit = function() {
-            const idx = document.getElementById('editItemIndex').value;
-            const item = stagingQueue[idx];
+    closeEditModal();
+    renderStagingTable();
+    showToast('Staged entry updated!');
+};
 
-            const actTitle = document.getElementById('editActivity').value;
-            const instId = document.getElementById('editInstructor').value;
-            const repId = document.getElementById('editReplacement').value;
-            const inTime = document.getElementById('editInTime').value;
-            const outTime = document.getElementById('editOutTime').value;
-            const topic = document.getElementById('editTopic').value.trim();
+/* ─── SUBMIT BATCH ─── */
+window.sendToSeniorCoordinator = async function() {
+    if (!stagingQueue.length) return alert('Staging area is empty. Log volunteer work first.');
+    if (!confirm(`Submit ${stagingQueue.length} record(s) for Master Admin approval?`)) return;
 
-            const instructor = cachedVolunteers.find(v => v.student_id === instId);
-            const replacement = repId ? cachedVolunteers.find(v => v.student_id === repId) : null;
+    const verifiedBy = `${activeCoordinator.full_name} (${activeCoordinator.student_id})`;
+    const payload = stagingQueue.map(item => ({
+        session_date: item.session_date,
+        day_of_week: item.day_of_week,
+        activity_title: item.activity_title,
+        instructor_id: item.instructor_id,
+        instructor_name: item.instructor_name,
+        replacement_id: item.replacement_id,
+        replacement_name: item.replacement_name,
+        credited_to_id: item.credited_to_id,
+        in_time: item.in_time,
+        out_time: item.out_time,
+        topic_covered: item.topic_covered,
+        is_designated_day: item.is_designated_day,
+        validator_id: activeCoordinator.student_id,
+        verified_by: verifiedBy,
+        status: 'Pending'
+    }));
 
-            item.activity_title = actTitle;
-            item.instructor_id = instId;
-            item.instructor_name = instructor ? instructor.full_name : 'Unknown';
-            item.replacement_id = repId || null;
-            item.replacement_name = replacement ? replacement.full_name : null;
-            item.credited_to_id = replacement ? replacement.student_id : instId;
-            item.credited_to_name = replacement ? replacement.full_name : (instructor ? instructor.full_name : 'Unknown');
-            item.in_time = inTime;
-            item.out_time = outTime || null;
-            item.topic_covered = topic;
+    const { error } = await sb.from('attendance_logs').insert(payload);
+    if (error) return alert('Failed to dispatch to cloud database: ' + error.message);
 
-            closeEditModal();
-            renderStagingTable();
-            showToast('Staged entry updated!');
-        };
-
-        /* ─── 5. SUBMIT TO DATABASE (SENIOR COORDINATOR INBOX) ─── */
-        window.sendToSeniorCoordinator = async function() {
-            if (!stagingQueue.length) {
-                return alert('Staging area is empty. Log volunteer work first.');
-            }
-
-            if (!confirm(`Submit ${stagingQueue.length} record(s) to the Senior Coordinator for Master approval?`)) {
-                return;
-            }
-
-            // Map all columns to ensure compatibility with Supabase schema
-            const payload = stagingQueue.map(item => ({
-                session_date: item.session_date,
-                day_of_week: item.day_of_week,
-                activity_title: item.activity_title,
-                instructor_student_id: item.instructor_id,
-                instructor_id: item.instructor_id,
-                instructor_name: item.instructor_name,
-                replacement_student_id: item.replacement_id || null,
-                replacement_id: item.replacement_id || null,
-                replacement_name: item.replacement_name || null,
-                credited_to_id: item.credited_to_id,
-                validator_id: activeCoordinator.student_id,
-                verified_by: `${activeCoordinator.full_name} (${activeCoordinator.student_id})`,
-                in_time: item.in_time,
-                out_time: item.out_time || item.in_time,
-                topic_covered: item.topic_covered,
-                remarks: item.topic_covered,
-                is_designated_day: item.is_designated_day,
-                status: 'Pending'
-            }));
-
-            const { data, error } = await sb.from('attendance_logs').insert(payload);
-
-            if (error) {
-                return alert('Failed to dispatch to cloud database: ' + error.message);
-            }
-
-            stagingQueue = [];
-            renderStagingTable();
-            showToast('All volunteer records submitted to Senior Coordinator!');
-        };
-    </script>
+    stagingQueue = [];
+    renderStagingTable();
+    showToast('All volunteer records submitted for approval!');
+};
+</script>
 </body>
 </html>
