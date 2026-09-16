@@ -50,7 +50,8 @@ svg { flex-shrink: 0; }
 .portal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 14px; border-bottom: 2px solid var(--prodip-border); flex-wrap: wrap; gap: 12px; }
 .portal-header h2 { font-size: 22px; color: var(--prodip-navy); display: flex; align-items: center; gap: 10px; font-weight: 800; }
 .profile-layout { display: grid; grid-template-columns: 340px 1fr; gap: 24px; }
-.card { background: var(--prodip-card); border: 1px solid var(--prodip-border); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.035); }
+.profile-layout > * { min-width: 0; }
+.card { background: var(--prodip-card); border: 1px solid var(--prodip-border); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.035); min-width: 0; }
 .profile-avatar-wrap { text-align: center; padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid var(--prodip-border); }
 .profile-avatar { width: 82px; height: 82px; border-radius: 50%; background: linear-gradient(135deg, #e2e8f0, #cbd5e1); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; border: 4px solid var(--prodip-canvas); }
 .profile-name { font-size: 19px; font-weight: 800; color: var(--prodip-navy); }
@@ -138,7 +139,7 @@ svg { flex-shrink: 0; }
 @media (max-width: 860px) {
     .profile-layout { grid-template-columns: 1fr; }
     .ribbon-bar { padding: 10px 16px; height: auto; flex-wrap: wrap; gap: 10px; }
-    .ribbon-nav { width: 100%; overflow-x: auto; }
+    .ribbon-nav { width: 100%; flex-wrap: wrap; gap: 8px; }
     .modal-overlay { align-items: flex-end; padding: 0; }
     .modal { max-width: none; width: 100%; border-radius: 18px 18px 0 0; max-height: 85vh; padding-bottom: 26px; }
 }
@@ -507,6 +508,10 @@ svg { flex-shrink: 0; }
         return `${dayName}, ${String(nextDate.getDate()).padStart(2, '0')}-${months[nextDate.getMonth()]}-${nextDate.getFullYear()}`;
     }
 
+    function escapeHtml(str) {
+        return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
     function showToast(msg) {
         const t = document.getElementById('toast');
         t.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg> ${msg}`;
@@ -598,8 +603,8 @@ svg { flex-shrink: 0; }
                 ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m17 2 4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>'
                 : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>';
             return `<div class="habit-node ${wasReplacement ? 'replaced' : 'present'}">
-                <div class="day">${(item.day_of_week || '').substring(0,3)}</div>
-                <div class="date">${item.session_date.substring(5)}</div>
+                <div class="day">${escapeHtml((item.day_of_week || '').substring(0,3))}</div>
+                <div class="date">${escapeHtml(item.session_date.substring(5))}</div>
                 <div class="habit-icon">${icon}</div>
             </div>`;
         }).join('');
@@ -618,8 +623,8 @@ svg { flex-shrink: 0; }
         }
         wrap.innerHTML = data.map(a => `
             <div class="activity-card">
-                <h3>${a.title}</h3>
-                <p>${a.notes || ''}</p>
+                <h3>${escapeHtml(a.title)}</h3>
+                <p>${escapeHtml(a.notes || '')}</p>
             </div>
         `).join('');
     }
