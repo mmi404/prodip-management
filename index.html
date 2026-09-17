@@ -132,7 +132,20 @@ svg { flex-shrink: 0; }
 .btn-modal-cancel:hover { background: #f1f5f9; }
 .btn-modal-submit { background: var(--prodip-crimson); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; min-height: 40px; }
 .btn-modal-submit:hover { background: var(--prodip-crimson-hover); }
-.btn-modal-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+/* ─── 1-TAP CIRCULAR BUTTON & NOTIFICATIONS ─── */
+.landing-one-tap-card { background: linear-gradient(135deg, #1e2c4f, #141e36); color: white; border-radius: 18px; padding: 24px; margin-bottom: 24px; text-align: center; box-shadow: 0 10px 25px rgba(20, 30, 54, 0.22); position: relative; overflow: hidden; border: 1px solid rgba(229,168,35,0.3); }
+.landing-one-tap-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--prodip-olive), var(--prodip-gold)); }
+.circular-tap-btn { width: 106px; height: 106px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.2); outline: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 14px auto; transition: all 0.2s ease; font-weight: 800; color: white; position: relative; }
+.circular-tap-btn:active { transform: scale(0.92); }
+.circular-tap-btn.checkin { background: linear-gradient(135deg, #22c55e, #15803d); box-shadow: 0 0 26px rgba(34, 197, 94, 0.55); animation: pulseGreen 2s infinite ease-in-out; }
+.circular-tap-btn.checkout { background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 0 26px rgba(239, 68, 68, 0.55); animation: pulseRed 2s infinite ease-in-out; }
+
+@keyframes pulseGreen { 0% { box-shadow: 0 0 14px rgba(34, 197, 94, 0.4); } 50% { box-shadow: 0 0 32px rgba(34, 197, 94, 0.85); } 100% { box-shadow: 0 0 14px rgba(34, 197, 94, 0.4); } }
+@keyframes pulseRed { 0% { box-shadow: 0 0 14px rgba(239, 68, 68, 0.4); } 50% { box-shadow: 0 0 32px rgba(239, 68, 68, 0.85); } 100% { box-shadow: 0 0 14px rgba(239, 68, 68, 0.4); } }
+
+.circular-tap-btn svg { margin-bottom: 2px; }
+.circular-tap-btn span { font-size: 11.5px; letter-spacing: 0.5px; font-weight: 800; }
+.tap-subtitle { font-size: 13px; opacity: 0.9; margin-top: 6px; }
 
 .mobile-nav-toggle { display: none; }
 @keyframes slideDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
@@ -154,7 +167,7 @@ svg { flex-shrink: 0; }
 <body>
 
 <header class="ribbon-bar">
-    <button class="ribbon-brand" onclick="onProfileNavClick()">
+    <button class="ribbon-brand" onclick="switchTab('activitiesView')">
         <div class="ribbon-logo-badge">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2C8 6 6 9 6 12.5A6 6 0 0 0 18 12.5C18 9 16 6 12 2Z" fill="#E5A823"/><rect x="10.5" y="18" width="3" height="4" rx="1" fill="#1E2C4F"/></svg>
         </div>
@@ -235,6 +248,10 @@ svg { flex-shrink: 0; }
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
                         Open Management Panel
                     </a>
+                    <button class="btn-edit-profile" style="background:#fff; border:1px solid var(--prodip-navy); color:var(--prodip-navy);" onclick="openSubstituteModal()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m17 2 4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                        Request a Substitute Teacher
+                    </button>
                     <button class="btn-edit-profile" onclick="openEditProfileModal()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                         Edit Profile &amp; Privacy
@@ -348,6 +365,48 @@ svg { flex-shrink: 0; }
 
     <!-- ─── 2. OUR ACTIVITIES (LANDING DEFAULT) ─── -->
     <section id="activitiesView" class="view-section active">
+
+        <!-- SUBSTITUTE REQUEST NOTIFICATION BANNER -->
+        <div id="substituteNotificationBanner" style="display:none; background:#fef3c7; border:1px solid #fde68a; color:#92400e; padding:14px 18px; border-radius:14px; margin-bottom:20px; font-size:13px; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+            <div style="flex:1; min-width:200px;">
+                <b style="color:#b45309; display:block; font-size:14px; margin-bottom:2px;">🔔 Substitute Request Received</b>
+                <span id="subReqText">A volunteer requested you as a substitute for an upcoming class session.</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button style="background:#166534; color:white; border:none; padding:8px 16px; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer;" onclick="respondSubstituteRequest(true)">Accept &amp; Take Class</button>
+                <button style="background:#991b1b; color:white; border:none; padding:8px 14px; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer;" onclick="respondSubstituteRequest(false)">Decline</button>
+            </div>
+        </div>
+
+        <!-- ZERO-FRICTION 1-TAP CIRCULAR BUTTON WIDGET -->
+        <div class="landing-one-tap-card" id="landingOneTapCard" style="display:none;">
+            <div style="font-size:12px; font-weight:700; color:var(--prodip-gold); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;" id="landingDayLabel">Today is your Designated Class Session</div>
+
+            <!-- STATE A: READY TO CHECK IN (ZERO FRICTION CIRCULAR BUTTON) -->
+            <div id="landingTapStateA">
+                <button class="circular-tap-btn checkin" onclick="oneTapCheckIn()">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    <span>CHECK IN</span>
+                </button>
+                <div class="tap-subtitle">1-Tap to Start Class Session Now</div>
+            </div>
+
+            <!-- STATE B: SESSION ONGOING (CHECKED IN) -->
+            <div id="landingTapStateB" style="display:none;">
+                <button class="circular-tap-btn checkout" onclick="oneTapCheckOut()">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                    <span>CHECK OUT</span>
+                </button>
+                <div class="tap-subtitle">🟢 Session Ongoing (Checked in at <b id="landingInTimeLabel">--:--</b>) · 1-Tap to Check Out</div>
+            </div>
+
+            <!-- STATE C: SESSION COMPLETED TODAY -->
+            <div id="landingTapStateC" style="display:none; padding:8px 0;">
+                <div style="font-size:16px; font-weight:800; color:#4ade80; margin-bottom:4px;">✅ Today's Class Session Logged!</div>
+                <div class="tap-subtitle" id="landingSummaryLabel">In: --:-- | Out: --:-- · Sent for Master Approval</div>
+            </div>
+        </div>
+
         <div class="hero-banner">
             <h2>একটি সময়, একটি শিশুর সুন্দর আগামী।</h2>
             <p>আমরা সুবিধাবঞ্চিত শিশুদের মৌলিক শিক্ষা, মানবিক মূল্যবোধ ও সহশিক্ষা কার্যক্রমের মাধ্যমে স্বপ্নবান মানুষ হিসেবে গড়ে তোলার প্রত্যয়ে কাজ করছি।</p>
@@ -450,6 +509,28 @@ svg { flex-shrink: 0; }
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>
                 Save &amp; Sync
             </button>
+<!-- ─── REQUEST SUBSTITUTE MODAL ─── -->
+<div class="modal-overlay" id="substituteModal">
+    <div class="modal">
+        <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--prodip-navy)" stroke-width="2"><path d="m17 2 4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> Request a Substitute Teacher</h3>
+        <p class="modal-sub">Transfer your upcoming designated class to another volunteer teacher.</p>
+
+        <div class="field">
+            <label>Substitute Teacher</label>
+            <select id="substituteTeacherSelect"></select>
+        </div>
+        <div class="field">
+            <label>Class Session Date</label>
+            <input type="date" id="substituteDateInput" />
+        </div>
+        <div class="field">
+            <label>Reason / Note (Optional)</label>
+            <input type="text" id="substituteNoteInput" placeholder="e.g. Lab exam, unwell..." />
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-modal-cancel" onclick="closeSubstituteModal()">Cancel</button>
+            <button class="btn-modal-submit" style="background:var(--prodip-navy);" onclick="sendSubstituteRequest()">Send Request</button>
         </div>
     </div>
 </div>
@@ -846,6 +927,227 @@ svg { flex-shrink: 0; }
 
         showToast('Checked out successfully! Session recorded.');
         await checkDesignatedDaySelfCheckIn();
+        await checkLandingOneTapState();
+    };
+
+    // ─── 1-TAP CIRCULAR BUTTON LOGIC ON LANDING PAGE ───
+    async function checkLandingOneTapState() {
+        const card = document.getElementById('landingOneTapCard');
+        if (!card) return;
+
+        if (!activeVolunteer) {
+            card.style.display = 'none';
+            return;
+        }
+
+        const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const today = new Date();
+        const todayDayName = dayNames[today.getDay()];
+        const y = today.getFullYear(), m = String(today.getMonth() + 1).padStart(2, '0'), d = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${y}-${m}-${d}`;
+
+        const userDays = activeVolunteer.designated_days || [];
+        const isDesignatedToday = userDays.includes(todayDayName);
+
+        // Fetch existing log for today
+        const { data: todayLogs } = await sb
+            .from('attendance_logs')
+            .select('*')
+            .eq('credited_to_id', activeVolunteer.student_id)
+            .eq('session_date', todayStr)
+            .order('id', { ascending: false });
+
+        const localLog = JSON.parse(localStorage.getItem(`self_session_${activeVolunteer.student_id}_${todayStr}`) || 'null');
+        const existingLog = (todayLogs && todayLogs.length > 0) ? todayLogs[0] : localLog;
+
+        if (isDesignatedToday || existingLog) {
+            card.style.display = 'block';
+            document.getElementById('landingDayLabel').textContent = isDesignatedToday
+                ? `Today is your Designated Class Session (${todayDayName})`
+                : `${todayDayName} Session`;
+
+            if (!existingLog) {
+                // State A: Ready to check in (Zero friction 1-tap circle)
+                document.getElementById('landingTapStateA').style.display = 'block';
+                document.getElementById('landingTapStateB').style.display = 'none';
+                document.getElementById('landingTapStateC').style.display = 'none';
+            } else if (!existingLog.out_time) {
+                // State B: Currently checked in
+                document.getElementById('landingTapStateA').style.display = 'none';
+                document.getElementById('landingTapStateB').style.display = 'block';
+                document.getElementById('landingTapStateC').style.display = 'none';
+                document.getElementById('landingInTimeLabel').textContent = existingLog.in_time;
+            } else {
+                // State C: Completed today
+                document.getElementById('landingTapStateA').style.display = 'none';
+                document.getElementById('landingTapStateB').style.display = 'none';
+                document.getElementById('landingTapStateC').style.display = 'block';
+                document.getElementById('landingSummaryLabel').textContent = `In: ${existingLog.in_time} | Out: ${existingLog.out_time} · Sent for Master Approval`;
+            }
+        } else {
+            card.style.display = 'none';
+        }
+
+        checkSubstituteNotifications();
+    }
+
+    window.oneTapCheckIn = async function() {
+        if (!activeVolunteer) return;
+        const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const today = new Date();
+        const todayDayName = dayNames[today.getDay()];
+        const y = today.getFullYear(), m = String(today.getMonth() + 1).padStart(2, '0'), d = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${y}-${m}-${d}`;
+        const hh = String(today.getHours()).padStart(2, '0');
+        const mm = String(today.getMinutes()).padStart(2, '0');
+        const inTime = `${hh}:${mm}`;
+
+        const actTitle = (activePublicActivities.length > 0 ? activePublicActivities[0].title : 'Teaching and Mentorship');
+
+        const payload = {
+            session_date: todayStr,
+            day_of_week: todayDayName,
+            activity_title: actTitle,
+            instructor_id: activeVolunteer.student_id,
+            instructor_name: activeVolunteer.full_name,
+            replacement_id: null,
+            replacement_name: null,
+            credited_to_id: activeVolunteer.student_id,
+            in_time: inTime,
+            out_time: null,
+            topic_covered: null,
+            is_designated_day: true,
+            validator_id: activeVolunteer.student_id,
+            verified_by: `1-Tap Check-In: ${activeVolunteer.full_name} (${activeVolunteer.student_id})`,
+            status: 'Pending'
+        };
+
+        localStorage.setItem(`self_session_${activeVolunteer.student_id}_${todayStr}`, JSON.stringify(payload));
+        const { error } = await sb.from('attendance_logs').insert([payload]);
+        if (error) console.warn('Supabase log note:', error.message);
+
+        showToast(`Checked in at ${inTime}! Have a great class.`);
+        await checkLandingOneTapState();
+    };
+
+    window.oneTapCheckOut = async function() {
+        if (!activeVolunteer) return;
+        const today = new Date();
+        const y = today.getFullYear(), m = String(today.getMonth() + 1).padStart(2, '0'), d = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${y}-${m}-${d}`;
+        const hh = String(today.getHours()).padStart(2, '0');
+        const mm = String(today.getMinutes()).padStart(2, '0');
+        const outTime = `${hh}:${mm}`;
+
+        const localLog = JSON.parse(localStorage.getItem(`self_session_${activeVolunteer.student_id}_${todayStr}`) || '{}');
+        localLog.out_time = outTime;
+        localStorage.setItem(`self_session_${activeVolunteer.student_id}_${todayStr}`, JSON.stringify(localLog));
+
+        const { data } = await sb
+            .from('attendance_logs')
+            .select('id')
+            .eq('credited_to_id', activeVolunteer.student_id)
+            .eq('session_date', todayStr)
+            .is('out_time', null);
+
+        if (data && data.length > 0) {
+            await sb.from('attendance_logs').update({ out_time: outTime }).eq('id', data[0].id);
+        } else {
+            await sb.from('attendance_logs').insert([localLog]);
+        }
+
+        showToast(`Checked out at ${outTime}! Session logged for approval.`);
+        await checkLandingOneTapState();
+    };
+
+    // ─── SUBSTITUTE REQUEST & NOTIFICATION SYSTEM ───
+    let currentSubstituteRequest = null;
+
+    window.openSubstituteModal = async function() {
+        if (!activeVolunteer) return;
+        const { data: vList } = await sb.from('volunteers').select('*').neq('student_id', activeVolunteer.student_id).order('full_name');
+        const roster = vList || [];
+
+        const sel = document.getElementById('substituteTeacherSelect');
+        sel.innerHTML = roster.length
+            ? roster.map(v => `<option value="${escapeHtml(v.student_id)}">${escapeHtml(v.full_name)} (${escapeHtml(v.student_id)}) - ${escapeHtml(v.department || '')}</option>`).join('')
+            : '<option value="">No other volunteers on roster</option>';
+
+        const today = new Date();
+        const y = today.getFullYear(), m = String(today.getMonth() + 1).padStart(2, '0'), d = String(today.getDate()).padStart(2, '0');
+        document.getElementById('substituteDateInput').value = `${y}-${m}-${d}`;
+        document.getElementById('substituteModal').classList.add('active');
+    };
+
+    window.closeSubstituteModal = function() {
+        document.getElementById('substituteModal').classList.remove('active');
+    };
+
+    window.sendSubstituteRequest = function() {
+        const subId = document.getElementById('substituteTeacherSelect').value;
+        const subDate = document.getElementById('substituteDateInput').value;
+        const note = document.getElementById('substituteNoteInput').value.trim();
+
+        if (!subId) return alert('Select a substitute teacher.');
+        if (!subDate) return alert('Select the class session date.');
+
+        const reqPayload = {
+            id: 'subreq_' + Date.now(),
+            from_id: activeVolunteer.student_id,
+            from_name: activeVolunteer.full_name,
+            to_id: subId,
+            class_date: subDate,
+            note: note,
+            status: 'pending',
+            created_at: new Date().toISOString()
+        };
+
+        const existingRequests = JSON.parse(localStorage.getItem('prodip_substitute_requests') || '[]');
+        existingRequests.push(reqPayload);
+        localStorage.setItem('prodip_substitute_requests', JSON.stringify(existingRequests));
+
+        closeSubstituteModal();
+        showToast('Substitute request sent!');
+    };
+
+    function checkSubstituteNotifications() {
+        if (!activeVolunteer) return;
+        const requests = JSON.parse(localStorage.getItem('prodip_substitute_requests') || '[]');
+
+        const pendingForMe = requests.find(r => r.to_id === activeVolunteer.student_id && r.status === 'pending');
+        const banner = document.getElementById('substituteNotificationBanner');
+
+        if (pendingForMe && banner) {
+            currentSubstituteRequest = pendingForMe;
+            document.getElementById('subReqText').textContent = `${pendingForMe.from_name} (${pendingForMe.from_id}) requested you as substitute for ${pendingForMe.class_date}.${pendingForMe.note ? ' Note: ' + pendingForMe.note : ''}`;
+            banner.style.display = 'flex';
+        } else if (banner) {
+            banner.style.display = 'none';
+        }
+
+        const myAcceptedReq = requests.find(r => r.from_id === activeVolunteer.student_id && r.status === 'accepted' && !r.notified);
+        if (myAcceptedReq) {
+            myAcceptedReq.notified = true;
+            localStorage.setItem('prodip_substitute_requests', JSON.stringify(requests));
+            showToast(`✅ Substitute request accepted for ${myAcceptedReq.class_date}! Duty transferred.`);
+        }
+    }
+
+    window.respondSubstituteRequest = function(accepted) {
+        if (!currentSubstituteRequest) return;
+        const requests = JSON.parse(localStorage.getItem('prodip_substitute_requests') || '[]');
+        const req = requests.find(r => r.id === currentSubstituteRequest.id);
+
+        if (req) {
+            req.status = accepted ? 'accepted' : 'declined';
+            req.responded_at = new Date().toISOString();
+            localStorage.setItem('prodip_substitute_requests', JSON.stringify(requests));
+        }
+
+        const banner = document.getElementById('substituteNotificationBanner');
+        if (banner) banner.style.display = 'none';
+        currentSubstituteRequest = null;
+        showToast(accepted ? 'Substitute request accepted! Credit transferred.' : 'Substitute request declined.');
     };
 
     function renderHabitStrip(logs) {
