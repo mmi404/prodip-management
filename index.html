@@ -247,6 +247,59 @@ svg { flex-shrink: 0; }
             </div>
 
             <div style="display:flex; flex-direction:column; gap:20px;">
+                <!-- 1-TAP SELF CHECK-IN CARD FOR DESIGNATED DAY -->
+                <div class="card self-checkin-card" id="fastSelfCheckInCard" style="display:none; background:linear-gradient(135deg, #ffffff, #f7fdf9); border:2px solid var(--prodip-olive);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+                        <h3 style="font-size:17px; color:var(--prodip-navy); font-weight:800; display:flex; align-items:center; gap:8px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--prodip-olive)" stroke-width="2.6"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                            1-Tap Attendance Check-In
+                        </h3>
+                        <span class="role-badge" id="selfCheckInDayBadge" style="background:#dcfce7; color:#166534; font-size:11px;">Designated Day</span>
+                    </div>
+
+                    <!-- STATE A: READY FOR 1-TAP CHECK-IN -->
+                    <div id="selfCheckInStateA">
+                        <p style="font-size:13px; color:var(--prodip-muted); margin-bottom:14px;">Today is your assigned teaching day. Tap below to start your class session immediately.</p>
+                        <div style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+                            <div style="flex:1; min-width:180px;">
+                                <label style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; display:block; margin-bottom:4px;">Activity Event</label>
+                                <select id="selfActivitySelect" style="width:100%; padding:9px 11px; border:1px solid var(--prodip-border); border-radius:8px; font-size:13px; background:#fff;"></select>
+                            </div>
+                            <div style="width:120px;">
+                                <label style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; display:block; margin-bottom:4px;">In Time</label>
+                                <input type="time" id="selfInTimeInput" style="width:100%; padding:9px 11px; border:1px solid var(--prodip-border); border-radius:8px; font-size:13px; background:#fff;" />
+                            </div>
+                        </div>
+                        <button class="btn-panel-link" style="background:var(--prodip-olive); font-size:14px; font-weight:800; padding:12px; min-height:46px;" onclick="executeSelfCheckIn()">
+                            ⚡ Tap to Check In Now
+                        </button>
+                    </div>
+
+                    <!-- STATE B: SESSION ONGOING (CHECKED IN) -->
+                    <div id="selfCheckInStateB" style="display:none;">
+                        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px 14px; margin-bottom:14px;">
+                            <div style="font-size:13.5px; font-weight:800; color:#166534; display:flex; align-items:center; gap:8px;">
+                                <span style="width:10px; height:10px; border-radius:50%; background:#22c55e; display:inline-block; box-shadow:0 0 8px #22c55e;"></span>
+                                Session Ongoing — Checked In at <span id="selfCheckInTimeLabel">00:00</span>
+                            </div>
+                            <div style="font-size:12px; color:#15803d; margin-top:3px;" id="selfCheckInEventLabel">Teaching and Mentorship</div>
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <label style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; display:block; margin-bottom:4px;">Topic Covered (Optional)</label>
+                            <input type="text" id="selfTopicInput" placeholder="e.g. Basic Addition &amp; Reading Exercise" style="width:100%; padding:9px 11px; border:1px solid var(--prodip-border); border-radius:8px; font-size:13px; background:#fff;" />
+                        </div>
+                        <button class="btn-panel-link" style="background:var(--prodip-crimson); font-size:14px; font-weight:800; padding:12px; min-height:46px;" onclick="executeSelfCheckOut()">
+                            🛑 Tap to Finish Class &amp; Check Out
+                        </button>
+                    </div>
+
+                    <!-- STATE C: SESSION COMPLETED TODAY -->
+                    <div id="selfCheckInStateC" style="display:none; text-align:center; padding:8px 0;">
+                        <div style="font-size:14px; font-weight:800; color:var(--prodip-navy); margin-bottom:4px;">✅ Today's Session Logged!</div>
+                        <div style="font-size:12.5px; color:var(--prodip-muted);" id="selfSummaryLabel">In: 00:00 | Out: 00:00 · Pending Master Admin Approval</div>
+                    </div>
+                </div>
+
                 <div class="card cert-card">
                     <div class="cert-header">
                         <div>
@@ -634,7 +687,166 @@ svg { flex-shrink: 0; }
 
         document.getElementById('streakCount').textContent = completedCount;
         renderHabitStrip(approvedLogs);
+        await checkDesignatedDaySelfCheckIn();
     }
+
+    let activePublicActivities = [];
+
+    async function checkDesignatedDaySelfCheckIn() {
+        if (!activeVolunteer) return;
+
+        const selfCard = document.getElementById('fastSelfCheckInCard');
+        if (!selfCard) return;
+
+        const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const today = new Date();
+        const todayDayName = dayNames[today.getDay()];
+        const y = today.getFullYear(), m = String(today.getMonth() + 1).padStart(2, '0'), d = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${y}-${m}-${d}`;
+
+        const userDays = activeVolunteer.designated_days || [];
+        const isDesignatedToday = userDays.includes(todayDayName);
+
+        // Fetch active activities to populate select dropdown
+        const { data: actData } = await sb.from('activities').select('*').eq('status', 'Active').order('title');
+        activePublicActivities = actData || [];
+        const actSelect = document.getElementById('selfActivitySelect');
+        if (actSelect) {
+            actSelect.innerHTML = activePublicActivities.length
+                ? activePublicActivities.map(a => `<option value="${escapeHtml(a.title)}">${escapeHtml(a.title)}</option>`).join('')
+                : '<option value="Teaching and Mentorship">Teaching and Mentorship</option>';
+        }
+
+        // Set default in-time input to current time
+        const hh = String(today.getHours()).padStart(2, '0');
+        const mm = String(today.getMinutes()).padStart(2, '0');
+        const inTimeInput = document.getElementById('selfInTimeInput');
+        if (inTimeInput && !inTimeInput.value) inTimeInput.value = `${hh}:${mm}`;
+
+        // Check existing attendance log for today
+        const { data: todayLogs } = await sb
+            .from('attendance_logs')
+            .select('*')
+            .eq('credited_to_id', activeVolunteer.student_id)
+            .eq('session_date', todayStr)
+            .order('id', { ascending: false });
+
+        const localLog = JSON.parse(localStorage.getItem(`self_session_${activeVolunteer.student_id}_${todayStr}`) || 'null');
+        const existingLog = (todayLogs && todayLogs.length > 0) ? todayLogs[0] : localLog;
+
+        if (isDesignatedToday || existingLog) {
+            selfCard.style.display = 'block';
+            document.getElementById('selfCheckInDayBadge').textContent = isDesignatedToday ? `Designated Day (${todayDayName})` : todayDayName;
+
+            if (!existingLog) {
+                // State A: Not checked in yet
+                document.getElementById('selfCheckInStateA').style.display = 'block';
+                document.getElementById('selfCheckInStateB').style.display = 'none';
+                document.getElementById('selfCheckInStateC').style.display = 'none';
+            } else if (!existingLog.out_time) {
+                // State B: Currently checked in
+                document.getElementById('selfCheckInStateA').style.display = 'none';
+                document.getElementById('selfCheckInStateB').style.display = 'block';
+                document.getElementById('selfCheckInStateC').style.display = 'none';
+                document.getElementById('selfCheckInTimeLabel').textContent = existingLog.in_time;
+                document.getElementById('selfCheckInEventLabel').textContent = existingLog.activity_title;
+            } else {
+                // State C: Completed today
+                document.getElementById('selfCheckInStateA').style.display = 'none';
+                document.getElementById('selfCheckInStateB').style.display = 'none';
+                document.getElementById('selfCheckInStateC').style.display = 'block';
+                document.getElementById('selfSummaryLabel').textContent = `In: ${existingLog.in_time} | Out: ${existingLog.out_time} · Event: ${existingLog.activity_title}`;
+            }
+        } else {
+            selfCard.style.display = 'none';
+        }
+    }
+
+    window.executeSelfCheckIn = async function() {
+        if (!activeVolunteer) return;
+
+        const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const today = new Date();
+        const todayDayName = dayNames[today.getDay()];
+        const y = today.getFullYear(), m = String(today.getMonth() + 1).padStart(2, '0'), d = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${y}-${m}-${d}`;
+
+        const actTitle = document.getElementById('selfActivitySelect').value || 'Teaching and Mentorship';
+        let inTime = document.getElementById('selfInTimeInput').value;
+        if (!inTime) {
+            const hh = String(today.getHours()).padStart(2, '0');
+            const mm = String(today.getMinutes()).padStart(2, '0');
+            inTime = `${hh}:${mm}`;
+        }
+
+        const payload = {
+            session_date: todayStr,
+            day_of_week: todayDayName,
+            activity_title: actTitle,
+            instructor_id: activeVolunteer.student_id,
+            instructor_name: activeVolunteer.full_name,
+            replacement_id: null,
+            replacement_name: null,
+            credited_to_id: activeVolunteer.student_id,
+            in_time: inTime,
+            out_time: null,
+            topic_covered: null,
+            is_designated_day: true,
+            validator_id: activeVolunteer.student_id,
+            verified_by: `Self Check-In: ${activeVolunteer.full_name} (${activeVolunteer.student_id})`,
+            status: 'Pending'
+        };
+
+        localStorage.setItem(`self_session_${activeVolunteer.student_id}_${todayStr}`, JSON.stringify(payload));
+
+        const { error } = await sb.from('attendance_logs').insert([payload]);
+        if (error) {
+            console.warn('Supabase log note:', error.message);
+        }
+
+        showToast('Checked in successfully!');
+        await checkDesignatedDaySelfCheckIn();
+    };
+
+    window.executeSelfCheckOut = async function() {
+        if (!activeVolunteer) return;
+
+        const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const today = new Date();
+        const y = today.getFullYear(), m = String(today.getMonth() + 1).padStart(2, '0'), d = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${y}-${m}-${d}`;
+
+        const hh = String(today.getHours()).padStart(2, '0');
+        const mm = String(today.getMinutes()).padStart(2, '0');
+        const outTime = `${hh}:${mm}`;
+        const topic = document.getElementById('selfTopicInput').value.trim();
+
+        const localLog = JSON.parse(localStorage.getItem(`self_session_${activeVolunteer.student_id}_${todayStr}`) || '{}');
+        localLog.out_time = outTime;
+        if (topic) localLog.topic_covered = topic;
+        localStorage.setItem(`self_session_${activeVolunteer.student_id}_${todayStr}`, JSON.stringify(localLog));
+
+        const { data } = await sb
+            .from('attendance_logs')
+            .select('id')
+            .eq('credited_to_id', activeVolunteer.student_id)
+            .eq('session_date', todayStr)
+            .is('out_time', null);
+
+        if (data && data.length > 0) {
+            await sb.from('attendance_logs').update({
+                out_time: outTime,
+                topic_covered: topic || null
+            }).eq('id', data[0].id);
+        } else {
+            localLog.out_time = outTime;
+            localLog.topic_covered = topic || null;
+            await sb.from('attendance_logs').insert([localLog]);
+        }
+
+        showToast('Checked out successfully! Session recorded.');
+        await checkDesignatedDaySelfCheckIn();
+    };
 
     function renderHabitStrip(logs) {
         const strip = document.getElementById('habitTrackerStrip');
