@@ -100,10 +100,16 @@ tr:hover td { background:#f8fafc; }
 
 #toast { position:fixed; bottom:24px; right:24px; background:var(--navy); color:white; padding:11px 18px; border-radius:8px; font-size:13px; font-weight:600; box-shadow:0 4px 12px rgba(0,0,0,0.15); display:none; align-items:center; gap:8px; z-index:10000; }
 
-@media (max-width:860px) {
-    .ribbon-bar { padding:10px 16px; flex-direction:column; align-items:stretch; }
-    .nav-links { overflow-x:auto; flex-wrap:nowrap; width:100%; -webkit-overflow-scrolling:touch; padding-bottom:4px; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px; margin-top:4px; }
-    .nav-link { flex-shrink:0; }
+.mobile-nav-toggle { display: none; }
+@keyframes slideDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+
+@media (max-width: 860px) {
+    .ribbon-bar { padding: 12px 16px; min-height: 66px; height: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+    .mobile-nav-toggle { display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px; border-radius: 8px; cursor: pointer; min-height: 40px; width: 40px; }
+    .mobile-nav-toggle:hover { background: rgba(255,255,255,0.2); }
+    .nav-links { display: none; width: 100%; flex-direction: column; gap: 8px; padding-top: 12px; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.15); animation: slideDown 0.2s ease-out; }
+    .nav-links.is-open { display: flex; }
+    .nav-link { width: 100%; justify-content: flex-start; padding: 12px 16px; border-radius: 8px; font-size: 13.5px; }
 }
 @media (max-width:640px) {
     .container { padding:0 14px; margin:16px auto; }
@@ -157,13 +163,19 @@ tr:hover td { background:#f8fafc; }
                 <span id="adminIdentityLabel">Master Admin</span>
             </div>
         </div>
-        <div class="nav-links">
-            <button class="nav-link active" data-sec="secVolunteers" onclick="switchSection('secVolunteers', this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Volunteers</button>
-            <button class="nav-link" data-sec="secActivities" onclick="switchSection('secActivities', this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg> Activities</button>
-            <button class="nav-link" data-sec="secInbox" onclick="switchSection('secInbox', this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg> Approval Inbox</button>
-            <button class="nav-link" data-sec="secMaster" onclick="switchSection('secMaster', this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Master Register</button>
-            <a href="co-ordinator.html" class="nav-link"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Coordinator</a>
-            <button class="nav-link nav-pill-lock" onclick="adminSignOut()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Lock Panel</button>
+
+        <button class="mobile-nav-toggle" aria-label="Toggle Navigation Menu" onclick="toggleAdminMobileNav(this)">
+            <svg class="icon-hamburger" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            <svg class="icon-close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="display:none;"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+
+        <div class="nav-links" id="adminNavLinks">
+            <button class="nav-link active" data-sec="secVolunteers" onclick="selectAdminSection('secVolunteers', this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Volunteers</button>
+            <button class="nav-link" data-sec="secActivities" onclick="selectAdminSection('secActivities', this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg> Activities</button>
+            <button class="nav-link" data-sec="secInbox" onclick="selectAdminSection('secInbox', this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg> Approval Inbox</button>
+            <button class="nav-link" data-sec="secMaster" onclick="selectAdminSection('secMaster', this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Master Register</button>
+            <a href="co-ordinator.html" class="nav-link" onclick="closeAdminMobileNav()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Coordinator Desk</a>
+            <button class="nav-link nav-pill-lock" onclick="closeAdminMobileNav(); adminSignOut();"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Lock Panel</button>
         </div>
     </header>
 
@@ -398,6 +410,39 @@ window.adminSignOut = async function() {
 })();
 
 /* ─── SECTION ROUTING ─── */
+window.toggleAdminMobileNav = function(btn) {
+    const nav = document.getElementById('adminNavLinks');
+    const isOpen = nav.classList.toggle('is-open');
+    const burger = btn.querySelector('.icon-hamburger');
+    const close = btn.querySelector('.icon-close');
+    if (isOpen) {
+        burger.style.display = 'none';
+        close.style.display = 'block';
+    } else {
+        burger.style.display = 'block';
+        close.style.display = 'none';
+    }
+};
+
+window.closeAdminMobileNav = function() {
+    const nav = document.getElementById('adminNavLinks');
+    if (nav) nav.classList.remove('is-open');
+    const btn = document.querySelector('.mobile-nav-toggle');
+    if (btn) {
+        const burger = btn.querySelector('.icon-hamburger');
+        const close = btn.querySelector('.icon-close');
+        if (burger && close) {
+            burger.style.display = 'block';
+            close.style.display = 'none';
+        }
+    }
+};
+
+window.selectAdminSection = function(secId, btnEl) {
+    closeAdminMobileNav();
+    switchSection(secId, btnEl);
+};
+
 window.switchSection = function(secId, btnEl) {
     document.querySelectorAll('.panel-section').forEach(el => el.classList.remove('active'));
     document.getElementById(secId).classList.add('active');

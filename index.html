@@ -134,13 +134,17 @@ svg { flex-shrink: 0; }
 .btn-modal-submit:hover { background: var(--prodip-crimson-hover); }
 .btn-modal-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
-#toast { position: fixed; bottom: 20px; right: 20px; background: var(--prodip-navy); color: white; padding: 12px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; display: none; z-index: 10000; box-shadow: 0 8px 20px rgba(0,0,0,0.2); align-items: center; gap: 8px; }
+.mobile-nav-toggle { display: none; }
+@keyframes slideDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
 
 @media (max-width: 860px) {
     .profile-layout { grid-template-columns: 1fr; }
-    .ribbon-bar { padding: 10px 16px; min-height: 66px; height: auto; flex-direction: column; align-items: stretch; gap: 10px; }
-    .ribbon-nav { width: 100%; overflow-x: auto; flex-wrap: nowrap; gap: 8px; -webkit-overflow-scrolling: touch; padding-bottom: 4px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; }
-    .ribbon-link { flex-shrink: 0; }
+    .ribbon-bar { padding: 12px 16px; min-height: 66px; height: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+    .mobile-nav-toggle { display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px; border-radius: 8px; cursor: pointer; min-height: 40px; width: 40px; }
+    .mobile-nav-toggle:hover { background: rgba(255,255,255,0.2); }
+    .ribbon-nav { display: none; width: 100%; flex-direction: column; gap: 8px; padding-top: 12px; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.15); animation: slideDown 0.2s ease-out; }
+    .ribbon-nav.is-open { display: flex; }
+    .ribbon-link { width: 100%; justify-content: flex-start; padding: 12px 16px; border-radius: 8px; font-size: 14px; }
     .modal-overlay { align-items: flex-end; padding: 0; }
     .modal { max-width: none; width: 100%; border-radius: 18px 18px 0 0; max-height: 85vh; padding: 20px; }
     .container { padding: 0 14px 40px; margin: 16px auto; }
@@ -160,14 +164,19 @@ svg { flex-shrink: 0; }
         </div>
     </button>
 
-    <nav class="ribbon-nav">
-        <button class="ribbon-link active-tab" id="tabActivities" onclick="switchTab('activitiesView')">Our Activities</button>
-        <button class="ribbon-link" id="tabAbout" onclick="switchTab('aboutView')">About Us</button>
-        <button class="ribbon-link donate-pill" id="tabDonate" onclick="switchTab('donateView')">
+    <button class="mobile-nav-toggle" aria-label="Toggle Navigation Menu" onclick="toggleMobileNav(this)">
+        <svg class="icon-hamburger" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <svg class="icon-close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="display:none;"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+
+    <nav class="ribbon-nav" id="mainRibbonNav">
+        <button class="ribbon-link active-tab" id="tabActivities" onclick="selectNavTab('activitiesView')">Our Activities</button>
+        <button class="ribbon-link" id="tabAbout" onclick="selectNavTab('aboutView')">About Us</button>
+        <button class="ribbon-link donate-pill" id="tabDonate" onclick="selectNavTab('donateView')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 21s-7-4.35-9.5-8.8C.6 8.4 2.6 5 6 5c2 0 3.5 1.1 4.5 2.7C11.5 6.1 13 5 15 5c3.4 0 5.4 3.4 3.5 7.2C19 16.65 12 21 12 21Z"/></svg>
             Donate
         </button>
-        <button class="ribbon-link profile-highlight-pill" id="tabProfile" onclick="onProfileNavClick()">
+        <button class="ribbon-link profile-highlight-pill" id="tabProfile" onclick="selectProfileNav()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
             My Profile
         </button>
@@ -400,6 +409,44 @@ svg { flex-shrink: 0; }
 
     let allRoles = [];
     let activeVolunteer = null;
+
+    window.toggleMobileNav = function(btn) {
+        const nav = document.getElementById('mainRibbonNav');
+        const isOpen = nav.classList.toggle('is-open');
+        const burger = btn.querySelector('.icon-hamburger');
+        const close = btn.querySelector('.icon-close');
+        if (isOpen) {
+            burger.style.display = 'none';
+            close.style.display = 'block';
+        } else {
+            burger.style.display = 'block';
+            close.style.display = 'none';
+        }
+    };
+
+    window.closeMobileNav = function() {
+        const nav = document.getElementById('mainRibbonNav');
+        if (nav) nav.classList.remove('is-open');
+        const btn = document.querySelector('.mobile-nav-toggle');
+        if (btn) {
+            const burger = btn.querySelector('.icon-hamburger');
+            const close = btn.querySelector('.icon-close');
+            if (burger && close) {
+                burger.style.display = 'block';
+                close.style.display = 'none';
+            }
+        }
+    };
+
+    window.selectNavTab = function(tabId) {
+        closeMobileNav();
+        switchTab(tabId);
+    };
+
+    window.selectProfileNav = function() {
+        closeMobileNav();
+        onProfileNavClick();
+    };
 
     window.switchTab = function(tabId) {
         document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));

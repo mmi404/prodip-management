@@ -116,12 +116,22 @@ button, input, select, textarea { font: inherit; }
 
 #toast { position:fixed; bottom:24px; right:24px; background:var(--navy); color:white; padding:12px 18px; border-radius:8px; font-size:13px; font-weight:600; box-shadow:0 4px 12px rgba(0,0,0,0.15); display:none; align-items:center; gap:8px; z-index:10000; }
 
+.mobile-nav-toggle { display: none; }
+@keyframes slideDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+
+@media (max-width: 860px) {
+    .ribbon-bar { padding: 12px 16px; min-height: 66px; height: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+    .mobile-nav-toggle { display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px; border-radius: 8px; cursor: pointer; min-height: 40px; width: 40px; }
+    .mobile-nav-toggle:hover { background: rgba(255,255,255,0.2); }
+    .ribbon-actions { display: none; width: 100%; flex-direction: column; gap: 8px; padding-top: 12px; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.15); animation: slideDown 0.2s ease-out; }
+    .ribbon-actions.is-open { display: flex; }
+    .btn-nav, .coord-pill { width: 100%; justify-content: flex-start; padding: 10px 14px; border-radius: 8px; font-size: 13.5px; }
+}
 @media (max-width:900px) {
     .grid-layout { grid-template-columns:1fr; }
     .session-bar { grid-template-columns:1fr; gap:10px; }
 }
 @media (max-width:640px) {
-    .ribbon-bar { padding:10px 14px; }
     .container { padding:0 10px; margin:14px auto; }
     .modal-overlay { align-items:flex-end; padding:0; }
     .modal { max-width:none; border-radius:18px 18px 0 0; max-height:85vh; padding:20px; }
@@ -172,10 +182,16 @@ button, input, select, textarea { font: inherit; }
                 <span>Fast Volunteer Attendance &amp; Event Execution</span>
             </div>
         </div>
-        <div class="ribbon-actions">
+
+        <button class="mobile-nav-toggle" aria-label="Toggle Navigation Menu" onclick="toggleCoordMobileNav(this)">
+            <svg class="icon-hamburger" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            <svg class="icon-close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="display:none;"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+
+        <div class="ribbon-actions" id="coordRibbonActions">
             <div class="coord-pill"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 11 2 2 4-4"/></svg> <span id="activeCoordLabel">Coordinator</span></div>
-            <a href="admin.html" class="btn-nav"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg> Admin</a>
-            <button class="btn-nav btn-nav-exit" onclick="coordinatorSignOut()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Exit</button>
+            <a href="admin.html" class="btn-nav"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg> Admin Panel</a>
+            <button class="btn-nav btn-nav-exit" onclick="coordinatorSignOut()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Exit / Lock Desk</button>
         </div>
     </header>
 
@@ -316,6 +332,20 @@ let activeCoordinator = null;
 let cachedVolunteers = [];
 let cachedActivities = [];
 let stagingQueue = [];
+
+window.toggleCoordMobileNav = function(btn) {
+    const nav = document.getElementById('coordRibbonActions');
+    const isOpen = nav.classList.toggle('is-open');
+    const burger = btn.querySelector('.icon-hamburger');
+    const close = btn.querySelector('.icon-close');
+    if (isOpen) {
+        burger.style.display = 'none';
+        close.style.display = 'block';
+    } else {
+        burger.style.display = 'block';
+        close.style.display = 'none';
+    }
+};
 
 function escapeHtml(str) {
     return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
