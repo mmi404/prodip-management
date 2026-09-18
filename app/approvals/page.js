@@ -5,18 +5,20 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import QuickSwitcher from '@/components/QuickSwitcher';
 import AuthGate from '@/components/AuthGate';
-import { ShieldCheck, Check, X, Users, BookOpen, UserPlus, Upload, Download, FileSpreadsheet, Search, Trash2 } from 'lucide-react';
+import { Shield, Check, X, Users, Search, Edit3, PlusCircle, UserPlus, Upload, Download, FileSpreadsheet } from 'lucide-react';
 
-export default function AdminPage() {
-  const [activeVolunteer, setActiveVolunteer] = useState({ student_id: '2101103', full_name: 'Master Admin', role_level: 6 });
-  const [pendingLogs, setPendingLogs] = useState([]);
+export default function ApprovalsPage() {
+  const [activeTab, setActiveTab] = useState('queue'); // 'queue' | 'mentors'
+  const [filterStatus, setFilterStatus] = useState('Pending'); // 'Pending' | 'Approved' | 'Rejected' | 'All'
+  const [allLogs, setAllLogs] = useState([]);
   const [volunteers, setVolunteers] = useState([]);
-  const [activities, setActivities] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modals state
   const [isAddVolunteerModalOpen, setIsAddVolunteerModalOpen] = useState(false);
   const [isBatchUploadModalOpen, setIsBatchUploadModalOpen] = useState(false);
+  const [isEditMentorModalOpen, setIsEditMentorModalOpen] = useState(false);
+  const [editingMentor, setEditingMentor] = useState(null);
 
   // Manual volunteer form
   const [newVolunteer, setNewVolunteer] = useState({
@@ -38,24 +40,21 @@ export default function AdminPage() {
   const router = useRouter();
 
   useEffect(() => {
-    initAdmin();
+    initApprovals();
   }, []);
 
-  const initAdmin = async () => {
+  const initApprovals = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       const { data: vol } = await supabase.from('volunteers').select('*').eq('auth_user_id', session.user.id).single();
-      if (vol) setActiveVolunteer(vol);
     }
-
-    fetchPendingLogs();
+    fetchLogs();
     fetchVolunteers();
-    fetchActivities();
   };
 
-  const fetchPendingLogs = async () => {
-    const { data } = await supabase.from('attendance_logs').select('*').eq('status', 'Pending').order('created_at', { ascending: false });
-    if (data) setPendingLogs(data);
+  const fetchLogs = async () => {
+    const { data } = await supabase.from('attendance_logs').select('*').order('session_date', { ascending: false });
+    setAllLogs(data || []);
   };
 
   const fetchVolunteers = async () => {
@@ -63,25 +62,18 @@ export default function AdminPage() {
     setVolunteers(data || []);
   };
 
-  const fetchActivities = async () => {
-    const { data } = await supabase.from('activities').select('*').order('title');
-    if (data) setActivities(data);
+  const handleApprove = async (logId) => {
+    const updated = allLogs.map(l => l.id === logId ? { ...l, status: 'Approved' } : l);
+    setAllLogs(updated);
+    await supabase.from('attendance_logs').update({ status: 'Approved' }).eq('id', logId);
+    alert('✅ Session log approved and credited to volunteer streak!');
   };
 
-  const handleApproveLog = async (id) => {
-    const { error } = await supabase.from('attendance_logs').update({ status: 'Approved' }).eq('id', id);
-    if (!error) {
-      alert('✅ Attendance log approved!');
-      fetchPendingLogs();
-    }
-  };
-
-  const handleRejectLog = async (id) => {
-    const { error } = await supabase.from('attendance_logs').update({ status: 'Rejected' }).eq('id', id);
-    if (!error) {
-      alert('❌ Attendance log rejected.');
-      fetchPendingLogs();
-    }
+  const handleReject = async (logId) => {
+    const updated = allLogs.map(l => l.id === logId ? { ...l, status: 'Rejected' } : l);
+    setAllLogs(updated);
+    await supabase.from('attendance_logs').update({ status: 'Rejected' }).eq('id', logId);
+    alert('❌ Session log rejected.');
   };
 
   // Manual Volunteer Add
@@ -195,7 +187,7 @@ export default function AdminPage() {
     setIsUploadingBatch(false);
 
     if (error) {
-      alert('Notice: ' + error.message + ' (Imported to active session)');
+      alert('Notice: ' + error.message + ' (Imported to current session)');
     } else {
       alert(`✅ Successfully imported ${csvPreview.length} volunteers into database!`);
     }
@@ -212,88 +204,216 @@ export default function AdminPage() {
     setCsvFileName('');
   };
 
-  const handleDeleteVolunteer = async (id, name) => {
-    if (!confirm(`Are you sure you want to remove ${name} from the roster?`)) return;
-    await supabase.from('volunteers').delete().eq('student_id', id);
-    setVolunteers(volunteers.filter(v => v.student_id !== id));
-    alert(`Volunteer ${name} removed.`);
+  // Save Edited Mentor
+  const handleSaveEditMentor = async () => {
+    if (!editingMentor) return;
+    const { error } = await supabase.from('volunteers').update({
+      full_name: editingMentor.full_name,
+      email: editingMentor.email,
+      role_level: parseInt(editingMentor.role_level) || 2,
+      target_classes: parseInt(editingMentor.target_classes) || 36,
+      designated_days: editingMentor.designated_days
+    }).eq('student_id', editingMentor.student_id);
+
+    if (error) {
+      alert('Notice: ' + error.message + ' (Updated in active session)');
+    } else {
+      alert(`✅ Volunteer ${editingMentor.full_name} updated successfully!`);
+    }
+
+    setVolunteers(volunteers.map(v => v.student_id === editingMentor.student_id ? editingMentor : v));
+    setIsEditMentorModalOpen(false);
+    setEditingMentor(null);
   };
+
+  const filteredLogs = allLogs.filter(log => {
+    if (filterStatus === 'All') return true;
+    return log.status === filterStatus;
+  });
+
+  const pendingCount = allLogs.filter(l => l.status === 'Pending').length;
 
   const filteredVolunteers = volunteers.filter(v =>
     v.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    v.student_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (v.department && v.department.toLowerCase().includes(searchQuery.toLowerCase()))
+    v.student_id.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <AuthGate minRoleLevel={6} requiredRoleName="System Administrator">
+    <AuthGate minRoleLevel={4} requiredRoleName="Senior Coordinator">
       <section>
         <QuickSwitcher />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '24px', paddingBottom: '14px', borderBottom: '2px solid var(--prodip-border)' }}>
-        <div>
-          <h2 style={{ fontSize: '22px', color: 'var(--prodip-navy)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <ShieldCheck size={24} color="var(--prodip-crimson)" /> PVMS Master Admin Panel
-          </h2>
-          <span style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>
-            System Administrator console for approving attendance submissions and managing volunteer roster data.
-          </span>
+      {/* TOP HEADER & TAB BAR */}
+      <div className="card" style={{ marginBottom: '24px', padding: '20px 24px', background: '#fff' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f3e8ff', color: '#6b21a8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Shield size={24} color="#6b21a8" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--prodip-navy)', margin: 0 }}>Attendance Approval Queue</h2>
+              <span style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>
+                Senior Coordinator &amp; Admin verification queue for volunteer participation and streak accreditation.
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px' }}>
+            {['Pending', 'Approved', 'Rejected', 'All'].map((status) => (
+              <button
+                key={status}
+                onClick={() => setFilterStatus(status)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: filterStatus === status ? '#fff' : 'transparent',
+                  color: filterStatus === status ? 'var(--prodip-navy)' : 'var(--prodip-muted)',
+                  boxShadow: filterStatus === status ? '0 1px 4px rgba(0,0,0,0.06)' : 'none'
+                }}
+              >
+                {status} {status === 'Pending' ? `(${pendingCount})` : ''}
+              </button>
+            ))}
+          </div>
         </div>
-        <span style={{ fontSize: '12.5px', background: '#fee2e2', color: '#991b1b', padding: '5px 14px', borderRadius: '20px', fontWeight: 700, whiteSpace: 'nowrap' }}>
-          System Administrator
-        </span>
+
+        {/* SECONDARY NAVIGATION TABS */}
+        <div style={{ display: 'flex', gap: '12px', marginTop: '20px', borderTop: '1px solid var(--prodip-border)', paddingTop: '14px' }}>
+          <button
+            onClick={() => setActiveTab('queue')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              fontSize: '13px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              background: activeTab === 'queue' ? 'var(--prodip-navy)' : '#f8fafc',
+              color: activeTab === 'queue' ? 'white' : 'var(--prodip-navy)'
+            }}
+          >
+            📋 Submissions Queue ({pendingCount})
+          </button>
+          <button
+            onClick={() => setActiveTab('mentors')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              fontSize: '13px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              background: activeTab === 'mentors' ? 'var(--prodip-navy)' : '#f8fafc',
+              color: activeTab === 'mentors' ? 'white' : 'var(--prodip-navy)'
+            }}
+          >
+            👥 Manage Mentors &amp; Teacher Data
+          </button>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        {/* PENDING ATTENDANCE APPROVALS */}
+      {activeTab === 'queue' ? (
+        /* APPROVAL QUEUE TABLE (Image 3) */
         <div className="card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '17px', color: 'var(--prodip-navy)', fontWeight: 800, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Check size={18} color="var(--prodip-crimson)" /> Pending Attendance Approvals ({pendingLogs.length})
-          </h3>
+          <div style={{ marginBottom: '18px' }}>
+            <h3 style={{ fontSize: '18px', color: 'var(--prodip-navy)', fontWeight: 800 }}>Review Submissions ({filteredLogs.length})</h3>
+            <span style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>
+              Approving a record officially credits the class to the mentor's milestone progress bar and streak.
+            </span>
+          </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px', minWidth: '600px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px', minWidth: '800px' }}>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--prodip-border)', color: '#475569' }}>
-                  <th style={{ padding: '10px 12px' }}>Date</th>
-                  <th style={{ padding: '10px 12px' }}>Volunteer</th>
-                  <th style={{ padding: '10px 12px' }}>Activity</th>
-                  <th style={{ padding: '10px 12px' }}>Times</th>
-                  <th style={{ padding: '10px 12px' }}>Credited To</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'right' }}>Actions</th>
+                <tr style={{ borderBottom: '2px solid var(--prodip-border)', color: '#64748b' }}>
+                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>SESSION DATE</th>
+                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>ACTIVITY</th>
+                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>MENTOR CREDITED</th>
+                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>ATTENDEE TYPE</th>
+                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>TIME &amp; HOURS</th>
+                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>NOTES</th>
+                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>STATUS</th>
+                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', textAlign: 'right' }}>APPROVAL ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
-                {pendingLogs.length > 0 ? (
-                  pendingLogs.map(log => (
+                {filteredLogs.length > 0 ? (
+                  filteredLogs.map((log) => (
                     <tr key={log.id} style={{ borderBottom: '1px solid var(--prodip-border)' }}>
-                      <td style={{ padding: '12px' }}><b>{log.session_date}</b> <span style={{ fontSize: '11px', color: 'var(--prodip-muted)' }}>({log.day_of_week})</span></td>
-                      <td style={{ padding: '12px' }}>{log.instructor_name} <br/><span style={{ fontSize: '11px', color: 'var(--prodip-muted)' }}>ID: {log.instructor_id}</span></td>
-                      <td style={{ padding: '12px' }}>{log.activity_title}</td>
-                      <td style={{ padding: '12px' }}>In: {log.in_time} | Out: {log.out_time || 'Ongoing'}</td>
-                      <td style={{ padding: '12px' }}>{log.credited_to_id}</td>
-                      <td style={{ padding: '12px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                          <button
-                            style={{ background: 'var(--prodip-olive)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                            onClick={() => handleApproveLog(log.id)}
-                          >
-                            <Check size={13} /> Approve
-                          </button>
-                          <button
-                            style={{ background: 'var(--prodip-crimson)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                            onClick={() => handleRejectLog(log.id)}
-                          >
-                            <X size={13} /> Reject
-                          </button>
-                        </div>
+                      <td style={{ padding: '14px 12px' }}>
+                        <b>{log.session_date}</b>
+                        <span style={{ fontSize: '11.5px', color: 'var(--prodip-muted)', display: 'block' }}>{log.day_of_week}</span>
+                      </td>
+                      <td style={{ padding: '14px 12px' }}>
+                        <span style={{ background: '#f3e8ff', color: '#6b21a8', fontSize: '11.5px', fontWeight: 700, padding: '3px 9px', borderRadius: '6px' }}>
+                          {log.activity_title}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 12px' }}>
+                        <b>{log.instructor_name}</b>
+                        <span style={{ fontSize: '11.5px', color: 'var(--prodip-muted)', display: 'block' }}>ID: {log.instructor_id}</span>
+                      </td>
+                      <td style={{ padding: '14px 12px' }}>
+                        {log.replacement_name ? (
+                          <span style={{ background: '#f3e8ff', color: '#6b21a8', fontSize: '11.5px', fontWeight: 700, padding: '4px 10px', borderRadius: '12px' }}>
+                            🔀 Substituted by {log.replacement_name}
+                          </span>
+                        ) : (
+                          <span style={{ background: '#dcfce7', color: '#166534', fontSize: '11.5px', fontWeight: 700, padding: '4px 10px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            👤 Attended Directly
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ padding: '14px 12px' }}>
+                        <div style={{ fontSize: '12px', color: '#475569' }}>In: <b>{log.in_time}</b></div>
+                        <div style={{ fontSize: '12px', color: '#475569' }}>Out: <b>{log.out_time || 'Ongoing'}</b></div>
+                        <b style={{ fontSize: '13px', color: 'var(--prodip-navy)' }}>{log.hours || '2.0 Hours'}</b>
+                      </td>
+                      <td style={{ padding: '14px 12px', color: 'var(--prodip-muted)', fontSize: '12.5px' }}>
+                        {log.topic_covered || 'No remarks'}
+                      </td>
+                      <td style={{ padding: '14px 12px' }}>
+                        <span style={{
+                          padding: '4px 10px',
+                          borderRadius: '12px',
+                          fontSize: '11.5px',
+                          fontWeight: 800,
+                          background: log.status === 'Approved' ? '#dcfce7' : log.status === 'Rejected' ? '#fee2e2' : '#fef9c3',
+                          color: log.status === 'Approved' ? '#166534' : log.status === 'Rejected' ? '#991b1b' : '#854d0e'
+                        }}>
+                          {log.status === 'Pending' ? '⌛ Pending' : log.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 12px', textAlign: 'right' }}>
+                        {log.status === 'Pending' ? (
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                            <button
+                              onClick={() => handleApprove(log.id)}
+                              style={{ background: '#059669', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            >
+                              <Check size={14} /> Approve
+                            </button>
+                            <button
+                              onClick={() => handleReject(log.id)}
+                              style={{ background: '#dc2626', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            >
+                              <X size={14} /> Reject
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '12px', color: 'var(--prodip-muted)', fontStyle: 'italic' }}>Verified</span>
+                        )}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--prodip-muted)' }}>
-                      No pending attendance logs requiring approval.
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '30px', color: 'var(--prodip-muted)' }}>
+                      No {filterStatus.toLowerCase()} attendance submissions found.
                     </td>
                   </tr>
                 )}
@@ -301,19 +421,14 @@ export default function AdminPage() {
             </table>
           </div>
         </div>
-
-        {/* FULL VOLUNTEER DIRECTORY WITH MANUAL ADD & BATCH CSV UPLOAD */}
+      ) : (
+        /* MENTOR DATA MANAGEMENT TABLE */
         <div className="card" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
             <div>
-              <h3 style={{ fontSize: '18px', color: 'var(--prodip-navy)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Users size={18} /> Volunteer Directory &amp; Roster Management ({volunteers.length})
-              </h3>
-              <span style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>
-                Add new volunteers manually or bulk import via CSV file.
-              </span>
+              <h3 style={{ fontSize: '18px', color: 'var(--prodip-navy)', fontWeight: 800 }}>Mentor &amp; Teacher Directory</h3>
+              <span style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>Senior Coordinators can add, batch upload, and manage mentor designated days, target classes, and roles.</span>
             </div>
-
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ position: 'relative', width: '220px' }}>
                 <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
@@ -321,7 +436,7 @@ export default function AdminPage() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search volunteers..."
+                  placeholder="Search mentor..."
                   style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--prodip-border)', borderRadius: '6px', fontSize: '12.5px' }}
                 />
               </div>
@@ -341,42 +456,44 @@ export default function AdminPage() {
           </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px', minWidth: '750px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px', minWidth: '700px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--prodip-border)', color: '#475569' }}>
-                  <th style={{ padding: '10px 12px' }}>Student ID</th>
-                  <th style={{ padding: '10px 12px' }}>Full Name</th>
-                  <th style={{ padding: '10px 12px' }}>Dept / Batch</th>
-                  <th style={{ padding: '10px 12px' }}>Role Level</th>
-                  <th style={{ padding: '10px 12px' }}>Target</th>
-                  <th style={{ padding: '10px 12px' }}>Designated Days</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'right' }}>Actions</th>
+                  <th style={{ padding: '12px' }}>STUDENT ID</th>
+                  <th style={{ padding: '12px' }}>VOLUNTEER NAME</th>
+                  <th style={{ padding: '12px' }}>ROLE LEVEL</th>
+                  <th style={{ padding: '12px' }}>TARGET CLASSES</th>
+                  <th style={{ padding: '12px' }}>DESIGNATED DAYS</th>
+                  <th style={{ padding: '12px' }}>CONTACT EMAIL</th>
+                  <th style={{ padding: '12px', textAlign: 'right' }}>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredVolunteers.map(v => (
+                {filteredVolunteers.map((v) => (
                   <tr key={v.student_id} style={{ borderBottom: '1px solid var(--prodip-border)' }}>
                     <td style={{ padding: '12px' }}><b>{v.student_id}</b></td>
+                    <td style={{ padding: '12px' }}>{v.full_name}</td>
                     <td style={{ padding: '12px' }}>
-                      <b>{v.full_name}</b>
-                      <div style={{ fontSize: '11px', color: 'var(--prodip-muted)' }}>{v.email || `${v.student_id}@prodip.org`}</div>
-                    </td>
-                    <td style={{ padding: '12px' }}>{v.department || '—'} {v.batch || ''}</td>
-                    <td style={{ padding: '12px' }}>
-                      <span style={{ background: '#e0e7ff', color: '#3730a3', padding: '3px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 700 }}>
+                      <span style={{ background: '#e0e7ff', color: '#3730a3', padding: '3px 9px', borderRadius: '12px', fontSize: '11px', fontWeight: 700 }}>
                         Level {v.role_level || 2}
                       </span>
                     </td>
-                    <td style={{ padding: '12px' }}><b>{v.target_classes || 36}</b></td>
-                    <td style={{ padding: '12px', fontSize: '12px' }}>
-                      {Array.isArray(v.designated_days) ? v.designated_days.join(', ') : (v.designated || 'Sunday, Tuesday, Friday')}
-                    </td>
+                    <td style={{ padding: '12px' }}><b>{v.target_classes || 36} Classes</b></td>
+                    <td style={{ padding: '12px' }}>{(v.designated_days || ['Sunday','Tuesday','Friday']).join(', ')}</td>
+                    <td style={{ padding: '12px', fontSize: '12px', color: 'var(--prodip-muted)' }}>{v.email || '—'}</td>
                     <td style={{ padding: '12px', textAlign: 'right' }}>
                       <button
-                        onClick={() => handleDeleteVolunteer(v.student_id, v.full_name)}
-                        style={{ background: '#fee2e2', color: '#991b1b', border: 'none', padding: '5px 10px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        onClick={() => {
+                          setEditingMentor({
+                            ...v,
+                            target_classes: v.target_classes || 36,
+                            designated_days: v.designated_days || ['Sunday', 'Tuesday', 'Friday']
+                          });
+                          setIsEditMentorModalOpen(true);
+                        }}
+                        style={{ background: '#f1f5f9', border: '1px solid var(--prodip-border)', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
                       >
-                        <Trash2 size={12} /> Remove
+                        Edit Mentor
                       </button>
                     </td>
                   </tr>
@@ -385,22 +502,7 @@ export default function AdminPage() {
             </table>
           </div>
         </div>
-
-        {/* ACTIVITIES OVERVIEW */}
-        <div className="card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '17px', color: 'var(--prodip-navy)', fontWeight: 800, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BookOpen size={16} /> Active Activities ({activities.length})
-          </h3>
-          <p style={{ fontSize: '12.5px', color: 'var(--prodip-muted)', marginBottom: '14px' }}>Configured teaching and social mentorship activities.</p>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            {activities.map(a => (
-              <span key={a.id} style={{ background: '#f1f5f9', border: '1px solid var(--prodip-border)', padding: '6px 12px', borderRadius: '16px', fontSize: '12.5px', fontWeight: 700, color: 'var(--prodip-navy)' }}>
-                {a.title}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* ─── MODAL 1: MANUAL ADD VOLUNTEER ─── */}
       {isAddVolunteerModalOpen && (
@@ -636,6 +738,111 @@ export default function AdminPage() {
               >
                 {isUploadingBatch ? 'Importing...' : `Import ${csvPreview.length} Volunteers`}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL 3: EDIT MENTOR DETAILS ─── */}
+      {isEditMentorModalOpen && editingMentor && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '500px', padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--prodip-navy)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Edit3 size={18} /> Edit Mentor: {editingMentor.full_name}
+              </h3>
+              <button onClick={() => setIsEditMentorModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Full Name</label>
+                <input
+                  type="text"
+                  value={editingMentor.full_name}
+                  onChange={e => setEditingMentor({ ...editingMentor, full_name: e.target.value })}
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--prodip-border)', borderRadius: '6px', fontSize: '13px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Email Address</label>
+                <input
+                  type="email"
+                  value={editingMentor.email || ''}
+                  onChange={e => setEditingMentor({ ...editingMentor, email: e.target.value })}
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--prodip-border)', borderRadius: '6px', fontSize: '13px' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Role Level</label>
+                  <select
+                    value={editingMentor.role_level || 2}
+                    onChange={e => setEditingMentor({ ...editingMentor, role_level: parseInt(e.target.value) })}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--prodip-border)', borderRadius: '6px', fontSize: '13px' }}
+                  >
+                    <option value={1}>Level 1: Trainee</option>
+                    <option value={2}>Level 2: Active Volunteer</option>
+                    <option value={3}>Level 3: Coordinator</option>
+                    <option value={4}>Level 4: Senior Coordinator</option>
+                    <option value={6}>Level 6: Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Target Classes</label>
+                  <input
+                    type="number"
+                    value={editingMentor.target_classes || 36}
+                    onChange={e => setEditingMentor({ ...editingMentor, target_classes: parseInt(e.target.value) || 36 })}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--prodip-border)', borderRadius: '6px', fontSize: '13px' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '6px' }}>Designated Teaching Days</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', fontSize: '12px' }}>
+                  {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => {
+                    const isChecked = (editingMentor.designated_days || []).includes(day);
+                    return (
+                      <label key={day} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={e => {
+                            const cur = editingMentor.designated_days || [];
+                            if (e.target.checked) {
+                              setEditingMentor({ ...editingMentor, designated_days: [...cur, day] });
+                            } else {
+                              setEditingMentor({ ...editingMentor, designated_days: cur.filter(d => d !== day) });
+                            }
+                          }}
+                        />
+                        {day.slice(0, 3)}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '14px' }}>
+                <button
+                  onClick={() => setIsEditMentorModalOpen(false)}
+                  style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid var(--prodip-border)', background: '#fff', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEditMentor}
+                  style={{ padding: '8px 18px', borderRadius: '6px', border: 'none', background: 'var(--prodip-navy)', color: 'white', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  Save Changes
+                </button>
+              </div>
             </div>
           </div>
         </div>
