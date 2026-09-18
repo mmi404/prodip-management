@@ -114,19 +114,21 @@ export default function ProfilePage() {
     <section>
       <QuickSwitcher />
 
-      <div className="portal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '14px', borderBottom: '2px solid var(--prodip-border)' }}>
-        <h2 style={{ fontSize: '22px', color: 'var(--prodip-navy)', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 800 }}>
-          <User size={20} color="var(--prodip-navy)" /> Volunteer Profile &amp; Dashboard
+      <div className="portal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px', marginBottom: '24px', paddingBottom: '14px', borderBottom: '2px solid var(--prodip-border)' }}>
+        <h2 style={{ fontSize: 'clamp(18px, 4.5vw, 22px)', color: 'var(--prodip-navy)', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 800, flex: '1 1 240px' }}>
+          <User size={22} color="var(--prodip-navy)" /> Volunteer Profile &amp; Dashboard
         </h2>
-        <div style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>Academic Term 2026 · Active Roster</div>
+        <div style={{ fontSize: '11.5px', color: 'var(--prodip-muted)', background: '#f1f5f9', padding: '4px 12px', borderRadius: '12px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+          Academic Term 2026 · Active Roster
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
         {/* LEFT PROFILE CARD */}
         <div className="card">
           <div style={{ textAlign: 'center', paddingBottom: '18px', marginBottom: '18px', borderBottom: '1px solid var(--prodip-border)' }}>
-            <div style={{ width: '82px', height: '82px', borderRadius: '50%', background: 'linear-gradient(135deg, #e2e8f0, #cbd5e1)', display: 'flex', alignItems: 'center', justify: 'center', margin: '0 auto 12px' }}>
-              <User size={38} color="var(--prodip-navy)" />
+            <div style={{ width: '84px', height: '84px', borderRadius: '50%', background: 'linear-gradient(135deg, #1e2c4f, #141e36)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', border: '3px solid var(--prodip-gold)', boxShadow: '0 4px 14px rgba(0,0,0,0.15)' }}>
+              <User size={44} color="#E5A823" />
             </div>
             <div style={{ fontSize: '19px', fontWeight: 800, color: 'var(--prodip-navy)' }}>{activeVolunteer.full_name}</div>
             <div style={{ fontSize: '13px', color: 'var(--prodip-muted)', marginTop: '3px' }}>Student ID: <b>{activeVolunteer.student_id}</b></div>
