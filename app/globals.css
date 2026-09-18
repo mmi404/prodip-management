@@ -1,0 +1,315 @@
+:root {
+    --prodip-navy: #1E2C4F;
+    --prodip-navy-dark: #141E36;
+    --prodip-crimson: #8E1B32;
+    --prodip-crimson-hover: #731326;
+    --prodip-olive: #7B9356;
+    --prodip-olive-hover: #667d45;
+    --prodip-gold: #E5A823;
+    --prodip-gold-glow: rgba(229, 168, 35, 0.45);
+    --prodip-canvas: #F9F8F5;
+    --prodip-card: #FFFFFF;
+    --prodip-text: #1C2430;
+    --prodip-muted: #64748B;
+    --prodip-border: #E2E8F0;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', 'Hind Siliguri', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+    background: var(--prodip-canvas);
+    color: var(--prodip-text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+a {
+    color: var(--prodip-navy);
+}
+
+button {
+    font: inherit;
+}
+
+svg {
+    flex-shrink: 0;
+}
+
+/* ─── RIBBON BAR ─── */
+.ribbon-bar {
+    background: var(--prodip-navy);
+    color: white;
+    padding: 0 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 70px;
+    box-shadow: 0 4px 22px rgba(20, 30, 54, 0.18);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.ribbon-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    text-decoration: none;
+    color: white;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    text-align: left;
+}
+
+.ribbon-logo-badge {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+    flex-shrink: 0;
+}
+
+.ribbon-title h1 {
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+}
+
+.ribbon-title span {
+    font-size: 11px;
+    opacity: 0.85;
+    display: block;
+    font-weight: 400;
+}
+
+.ribbon-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ribbon-link {
+    color: #cbd5e1;
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: 0.2s;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+}
+
+.ribbon-link:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.ribbon-link.active-tab {
+    color: white;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.ribbon-link.donate-pill {
+    background: var(--prodip-crimson);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 3px 10px rgba(142, 27, 50, 0.35);
+}
+
+.ribbon-link.profile-highlight-pill {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #0f172a;
+    font-weight: 700;
+    border: 1px solid rgba(254, 243, 199, 0.6);
+    box-shadow: 0 0 16px var(--prodip-gold-glow);
+    padding: 9px 18px;
+    border-radius: 30px;
+}
+
+/* ─── APP CONTAINER ─── */
+.container {
+    max-width: 1180px;
+    width: 100%;
+    margin: 28px auto;
+    padding: 0 20px 40px;
+    flex: 1;
+}
+
+.card {
+    background: var(--prodip-card);
+    border: 1px solid var(--prodip-border);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.035);
+    min-width: 0;
+}
+
+/* ─── 1-TAP CIRCULAR BUTTON WIDGET ─── */
+.landing-one-tap-card {
+    background: linear-gradient(135deg, #1e2c4f, #141e36);
+    color: white;
+    border-radius: 20px;
+    padding: 28px 24px;
+    margin-bottom: 24px;
+    text-align: center;
+    box-shadow: 0 12px 30px rgba(20, 30, 54, 0.28);
+    position: relative;
+    overflow: hidden;
+    border: 2px solid var(--prodip-gold);
+}
+
+.landing-one-tap-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--prodip-olive), var(--prodip-gold), var(--prodip-crimson));
+}
+
+.circular-tap-btn {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 4px solid rgba(255,255,255,0.3);
+    outline: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 16px auto;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 800;
+    color: white;
+    position: relative;
+    user-select: none;
+}
+
+.circular-tap-btn:hover {
+    transform: scale(1.05);
+    border-color: rgba(255,255,255,0.6);
+}
+
+.circular-tap-btn:active {
+    transform: scale(0.92);
+}
+
+.circular-tap-btn.checkin {
+    background: linear-gradient(135deg, #22c55e, #15803d);
+    box-shadow: 0 0 32px rgba(34, 197, 94, 0.65);
+    animation: pulseGreen 2s infinite ease-in-out;
+}
+
+.circular-tap-btn.checkout {
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    box-shadow: 0 0 32px rgba(239, 68, 68, 0.65);
+    animation: pulseRed 2s infinite ease-in-out;
+}
+
+@keyframes pulseGreen {
+    0% { box-shadow: 0 0 14px rgba(34, 197, 94, 0.4); }
+    50% { box-shadow: 0 0 36px rgba(34, 197, 94, 0.9); }
+    100% { box-shadow: 0 0 14px rgba(34, 197, 94, 0.4); }
+}
+
+@keyframes pulseRed {
+    0% { box-shadow: 0 0 14px rgba(239, 68, 68, 0.4); }
+    50% { box-shadow: 0 0 36px rgba(239, 68, 68, 0.9); }
+    100% { box-shadow: 0 0 14px rgba(239, 68, 68, 0.4); }
+}
+
+.tap-subtitle {
+    font-size: 13.5px;
+    opacity: 0.92;
+    margin-top: 6px;
+    font-weight: 500;
+    color: #e2e8f0;
+}
+
+/* ─── MODAL ─── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.modal {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 440px;
+    width: 100%;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.mobile-nav-toggle {
+    display: none;
+}
+
+@media (max-width: 860px) {
+    .ribbon-bar {
+        padding: 12px 16px;
+        min-height: 66px;
+        height: auto;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .mobile-nav-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: white;
+        padding: 8px;
+        border-radius: 8px;
+        cursor: pointer;
+        min-height: 40px;
+        width: 40px;
+    }
+    .ribbon-nav {
+        display: none;
+        width: 100%;
+        flex-direction: column;
+        gap: 8px;
+        padding-top: 12px;
+        margin-top: 8px;
+        border-top: 1px solid rgba(255,255,255,0.15);
+    }
+    .ribbon-nav.is-open {
+        display: flex;
+    }
+    .container {
+        padding: 0 14px 40px;
+        margin: 16px auto;
+    }
+}
