@@ -88,12 +88,14 @@ export default function SubstituteRequestBox({ activeVolunteer }) {
 
   return (
     <div className="card substitute-request-card" style={{ background: 'linear-gradient(135deg, #ffffff, #fdfbf7)', border: '2px solid var(--prodip-gold)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px', borderBottom: '1px solid var(--prodip-border)', paddingBottom: '10px' }}>
-        <h3 style={{ fontSize: '17px', color: 'var(--prodip-navy)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '12px', borderBottom: '1px solid var(--prodip-border)', paddingBottom: '10px' }}>
+        <h3 style={{ fontSize: '17px', color: 'var(--prodip-navy)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 auto' }}>
           <ArrowRightLeft size={18} color="var(--prodip-gold)" />
           Request a Substitute Teacher
         </h3>
-        <span className="role-badge" style={{ background: 'var(--prodip-gold)', color: '#000', fontSize: '11px' }}>Class Duty Transfer</span>
+        <span className="role-badge" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', fontSize: '11px', padding: '4px 10px' }}>
+          Class Duty Transfer
+        </span>
       </div>
 
       <p style={{ fontSize: '13px', color: 'var(--prodip-muted)', marginBottom: '16px' }}>
@@ -146,7 +148,7 @@ export default function SubstituteRequestBox({ activeVolunteer }) {
       </div>
 
       <div style={{ marginBottom: '16px' }}>
-        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Reason / Note (Optional)</label>
+        <label style={{ fontSize: '11px', fontWeight 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Reason / Note (Optional)</label>
         <input
           type="text"
           value={note}
@@ -169,7 +171,7 @@ export default function SubstituteRequestBox({ activeVolunteer }) {
           cursor: 'pointer',
           display: 'inline-flex',
           alignItems: 'center',
-          justifyContent: 'center',
+          justify.content: 'center',
           gap: '8px',
           minHeight: '46px'
         }}

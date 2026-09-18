@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import QuickSwitcher from '@/components/QuickSwitcher';
 import { Shield, Search, CheckCircle, Clock, Send, Trash2 } from 'lucide-react';
 
 export default function CoordinatorPage() {
@@ -123,6 +124,8 @@ export default function CoordinatorPage() {
 
   return (
     <section>
+      <QuickSwitcher />
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '14px', borderBottom: '2px solid var(--prodip-border)' }}>
         <h2 style={{ fontSize: '22px', color: 'var(--prodip-navy)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Shield size={22} color="var(--prodip-olive)" /> Coordinator Attendance Desk

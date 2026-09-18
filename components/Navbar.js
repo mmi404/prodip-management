@@ -1,13 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Heart, User, Menu, X } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { Heart, User, Menu, X, Shield, ShieldCheck } from 'lucide-react';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [userRoleLevel, setUserRoleLevel] = useState(1);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    checkUserRole();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      checkUserRole();
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const checkUserRole = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      setIsLoggedIn(true);
+      const { data: vol } = await supabase.from('volunteers').select('role_level').eq('auth_user_id', session.user.id).single();
+      if (vol) setUserRoleLevel(vol.role_level || 1);
+    } else {
+      setIsLoggedIn(false);
+      setUserRoleLevel(1);
+    }
+  };
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
@@ -32,7 +55,7 @@ export default function Navbar() {
         aria-label="Toggle Navigation Menu"
         onClick={toggleMenu}
       >
-        {isOpen ? <X size={22} /> : <Menu size={22} />}
+        {isOpen ? <X size={22} color="white" /> : <Menu size={22} color="white" />}
       </button>
 
       <nav className={`ribbon-nav ${isOpen ? 'is-open' : ''}`}>
@@ -58,13 +81,36 @@ export default function Navbar() {
           <Heart size={14} />
           Donate
         </Link>
+
+        {isLoggedIn && userRoleLevel >= 3 && (
+          <Link
+            href="/coordinator"
+            className={`ribbon-link coord-pill ${pathname === '/coordinator' ? 'active-tab' : ''}`}
+            onClick={closeMenu}
+          >
+            <Shield size={14} />
+            Coordinator Desk
+          </Link>
+        )}
+
+        {isLoggedIn && userRoleLevel >= 6 && (
+          <Link
+            href="/admin"
+            className={`ribbon-link admin-pill ${pathname === '/admin' ? 'active-tab' : ''}`}
+            onClick={closeMenu}
+          >
+            <ShieldCheck size={14} />
+            Admin Panel
+          </Link>
+        )}
+
         <Link
           href="/profile"
           className={`ribbon-link profile-highlight-pill ${pathname === '/profile' ? 'active-tab' : ''}`}
           onClick={closeMenu}
         >
           <User size={14} />
-          My Profile
+          {isLoggedIn ? 'My Profile' : 'Volunteer Login'}
         </Link>
       </nav>
     </header>

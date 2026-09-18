@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
+import QuickSwitcher from '@/components/QuickSwitcher';
 import SubstituteRequestBox from '@/components/SubstituteRequestBox';
 import LoginModal from '@/components/LoginModal';
-import { User, Award, Calendar, LogOut, Edit3, Shield, CheckCircle2 } from 'lucide-react';
+import { User, Award, Calendar, LogOut, Edit3, Shield, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 export default function ProfilePage() {
   const [activeVolunteer, setActiveVolunteer] = useState(null);
@@ -110,6 +112,8 @@ export default function ProfilePage() {
 
   return (
     <section>
+      <QuickSwitcher />
+
       <div className="portal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '14px', borderBottom: '2px solid var(--prodip-border)' }}>
         <h2 style={{ fontSize: '22px', color: 'var(--prodip-navy)', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 800 }}>
           <User size={20} color="var(--prodip-navy)" /> Volunteer Profile &amp; Dashboard
@@ -121,12 +125,12 @@ export default function ProfilePage() {
         {/* LEFT PROFILE CARD */}
         <div className="card">
           <div style={{ textAlign: 'center', paddingBottom: '18px', marginBottom: '18px', borderBottom: '1px solid var(--prodip-border)' }}>
-            <div style={{ width: '82px', height: '82px', borderRadius: '50%', background: 'linear-gradient(135deg, #e2e8f0, #cbd5e1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+            <div style={{ width: '82px', height: '82px', borderRadius: '50%', background: 'linear-gradient(135deg, #e2e8f0, #cbd5e1)', display: 'flex', alignItems: 'center', justify: 'center', margin: '0 auto 12px' }}>
               <User size={38} color="var(--prodip-navy)" />
             </div>
             <div style={{ fontSize: '19px', fontWeight: 800, color: 'var(--prodip-navy)' }}>{activeVolunteer.full_name}</div>
             <div style={{ fontSize: '13px', color: 'var(--prodip-muted)', marginTop: '3px' }}>Student ID: <b>{activeVolunteer.student_id}</b></div>
-            <span className="role-badge" style={{ display: 'inline-block', background: 'var(--prodip-olive)', color: 'white', fontSize: '11px', fontWeight: 700, padding: '3px 12px', borderRadius: '20px', textTransform: 'uppercase', marginTop: '8px' }}>
+            <span className="role-badge" style={{ display: 'inline-block', background: 'var(--prodip-olive)', color: 'white', fontSize: '11px', fontWeight: 700, padding: '4px 12px', borderRadius: '20px', textTransform: 'uppercase', marginTop: '8px' }}>
               {userRole.name}
             </span>
           </div>
@@ -159,20 +163,20 @@ export default function ProfilePage() {
 
           <div style={{ borderTop: '1px solid var(--prodip-border)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '9px' }}>
             {userRole.level >= 3 && (
-              <a href="/coordinator" className="btn-panel-link" style={{ background: 'var(--prodip-olive)' }}>
-                <Shield size={14} /> Open Coordinator Desk
-              </a>
+              <Link href="/coordinator" className="btn-panel-link coord-bg">
+                <Shield size={16} color="white" /> Open Coordinator Desk
+              </Link>
             )}
             {userRole.level >= 6 && (
-              <a href="/admin" className="btn-panel-link" style={{ background: 'var(--prodip-crimson)' }}>
-                <Shield size={14} /> Open Management Panel
-              </a>
+              <Link href="/admin" className="btn-panel-link admin-bg">
+                <ShieldCheck size={16} color="white" /> Open Management Panel
+              </Link>
             )}
-            <button className="btn-edit-profile" onClick={() => setIsEditModalOpen(true)}>
-              <Edit3 size={14} /> Edit Profile &amp; Privacy
+            <button className="btn-edit-profile" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--prodip-border)', background: '#f8fafc', color: 'var(--prodip-navy)', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => setIsEditModalOpen(true)}>
+              <Edit3 size={15} /> Edit Profile &amp; Privacy
             </button>
-            <button className="btn-signout" onClick={handleSignOut}>
-              <LogOut size={14} /> Sign Out
+            <button className="btn-signout" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #fecdd3', background: '#fff1f2', color: 'var(--prodip-crimson)', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={handleSignOut}>
+              <LogOut size={15} /> Sign Out
             </button>
           </div>
         </div>
@@ -184,7 +188,7 @@ export default function ProfilePage() {
 
           {/* CERTIFICATE ELIGIBILITY */}
           <div className="card cert-card">
-            <div className="cert-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="cert-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
               <div>
                 <h3 style={{ fontSize: '18px', color: 'var(--prodip-navy)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Award size={18} color="var(--prodip-gold)" /> Certificate Eligibility
