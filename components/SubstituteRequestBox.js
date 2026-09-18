@@ -148,7 +148,7 @@ export default function SubstituteRequestBox({ activeVolunteer }) {
       </div>
 
       <div style={{ marginBottom: '16px' }}>
-        <label style={{ fontSize: '11px', fontWeight 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Reason / Note (Optional)</label>
+        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Reason / Note (Optional)</label>
         <input
           type="text"
           value={note}
@@ -171,7 +171,7 @@ export default function SubstituteRequestBox({ activeVolunteer }) {
           cursor: 'pointer',
           display: 'inline-flex',
           alignItems: 'center',
-          justify.content: 'center',
+          justifyContent: 'center',
           gap: '8px',
           minHeight: '46px'
         }}
