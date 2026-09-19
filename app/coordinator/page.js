@@ -7,6 +7,48 @@ import QuickSwitcher from '@/components/QuickSwitcher';
 import AuthGate from '@/components/AuthGate';
 import { Shield, Search, CheckCircle, Clock, Send, Trash2, Edit3, UserCheck, PlusCircle, ArrowRightLeft } from 'lucide-react';
 
+// Time utility helpers
+export const parseTimeToMinutes = (t) => {
+  if (!t || typeof t !== 'string') return null;
+  const str = t.trim();
+  const match = str.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([aApP][mM])?$/);
+  if (!match) return null;
+
+  let h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  const mer = match[3] ? match[3].toUpperCase() : null;
+
+  if (mer) {
+    if (mer === 'PM' && h < 12) h += 12;
+    if (mer === 'AM' && h === 12) h = 0;
+  }
+  return h * 60 + m;
+};
+
+export const calcHours = (inTime, outTime) => {
+  if (!inTime || !outTime) return '--';
+  const start = parseTimeToMinutes(inTime);
+  const end = parseTimeToMinutes(outTime);
+  if (start === null || end === null) return '--';
+
+  let diff = end - start;
+  if (diff < 0) diff += 24 * 60; // Overnight shift support
+
+  const decimalHours = diff / 60;
+  // If > 0 but less than 0.05 hr (e.g. 1-2 min quick check-in test), display 0.1 hrs
+  const formatted = diff > 0 && decimalHours < 0.05 ? '0.1' : decimalHours.toFixed(1);
+  return `${formatted} hrs`;
+};
+
+export const formatToTimeInput = (t) => {
+  if (!t || typeof t !== 'string') return '';
+  const totalMins = parseTimeToMinutes(t);
+  if (totalMins === null) return '';
+  const h = Math.floor(totalMins / 60) % 24;
+  const m = totalMins % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
+
 export default function CoordinatorPage() {
   const [activeVolunteer, setActiveVolunteer] = useState(null);
   const [activities, setActivities] = useState([]);
@@ -56,6 +98,8 @@ export default function CoordinatorPage() {
     const hh = String(today.getHours()).padStart(2, '0');
     const mm = String(today.getMinutes()).padStart(2, '0');
     setManualInTime(`${hh}:${mm}`);
+    const endH = String((today.getHours() + 2) % 24).padStart(2, '0');
+    setManualOutTime(`${endH}:${mm}`);
 
     // Fetch activities & roster
     const { data: acts } = await supabase.from('activities').select('*').eq('status', 'Active').order('title');
@@ -140,8 +184,8 @@ export default function CoordinatorPage() {
     const target = scheduledMentors.find(m => m.student_id === studentId);
     if (!target) return;
 
-    const inT = target.in_time || '10:00';
-    const hours = '2.0 hrs';
+    const inT = target.in_time || outTime;
+    const hours = calcHours(inT, outTime);
 
     const stagedItem = {
       session_date: sessionDate,
@@ -196,6 +240,9 @@ export default function CoordinatorPage() {
       return;
     }
 
+    const outT = manualOutTime || manualInTime;
+    const hours = calcHours(manualInTime, outT);
+
     const newItem = {
       session_date: sessionDate,
       day_of_week: dayOfWeekStr,
@@ -205,20 +252,25 @@ export default function CoordinatorPage() {
       replacement_id: selectedReplacementId || null,
       replacement_name: repName,
       in_time: manualInTime,
-      out_time: manualOutTime || '12:00 PM',
-      hours: '2.0 hrs',
+      out_time: outT,
+      hours,
       topic_covered: manualTopic || 'General Class'
     };
 
     setStagedBatch([...stagedBatch, newItem]);
     setManualTopic('');
-    alert(`Entry for ${instName} staged successfully!`);
+    alert(`Entry for ${instName} (${hours}) staged successfully!`);
   };
 
   // 5. Edit Staged Entry Modal
   const openEditModal = (index) => {
+    const item = stagedBatch[index];
     setEditIndex(index);
-    setEditData({ ...stagedBatch[index] });
+    setEditData({
+      ...item,
+      in_time: formatToTimeInput(item.in_time),
+      out_time: formatToTimeInput(item.out_time)
+    });
     setIsEditModalOpen(true);
   };
 
@@ -233,10 +285,13 @@ export default function CoordinatorPage() {
       repName = rep ? rep.full_name : editData.replacement_id;
     }
 
+    const hours = calcHours(editData.in_time, editData.out_time);
+
     const updatedItem = {
       ...editData,
       instructor_name: instName,
-      replacement_name: repName
+      replacement_name: repName,
+      hours
     };
 
     const updatedBatch = [...stagedBatch];
@@ -506,28 +561,33 @@ export default function CoordinatorPage() {
             </select>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
             <div>
               <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>In Time</label>
               <input
-                type="text"
+                type="time"
                 value={manualInTime}
                 onChange={(e) => setManualInTime(e.target.value)}
-                placeholder="10:00 AM"
-                style={{ width: '100%', padding: '8.5px 10px', border: '1px solid var(--prodip-border)', borderRadius: '8px', fontSize: '13px' }}
+                onClick={(e) => e.target.showPicker?.()}
+                style={{ width: '100%', padding: '8.5px 10px', border: '1px solid var(--prodip-border)', borderRadius: '8px', fontSize: '13px', background: '#fff' }}
               />
             </div>
             <div>
               <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Out Time</label>
               <input
-                type="text"
+                type="time"
                 value={manualOutTime}
                 onChange={(e) => setManualOutTime(e.target.value)}
-                placeholder="12:00 PM"
-                style={{ width: '100%', padding: '8.5px 10px', border: '1px solid var(--prodip-border)', borderRadius: '8px', fontSize: '13px' }}
+                onClick={(e) => e.target.showPicker?.()}
+                style={{ width: '100%', padding: '8.5px 10px', border: '1px solid var(--prodip-border)', borderRadius: '8px', fontSize: '13px', background: '#fff' }}
               />
             </div>
           </div>
+          {manualInTime && manualOutTime && (
+            <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--prodip-border)' }}>
+              ⏱️ Duration: <b style={{ color: 'var(--prodip-navy)' }}>{calcHours(manualInTime, manualOutTime)}</b>
+            </div>
+          )}
 
           <div style={{ marginBottom: '16px' }}>
             <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Topic / Notes (Optional)</label>
@@ -587,7 +647,7 @@ export default function CoordinatorPage() {
                   <div>
                     <b style={{ fontSize: '14px', color: 'var(--prodip-navy)', display: 'block' }}>{item.instructor_name}</b>
                     <span style={{ fontSize: '12px', color: 'var(--prodip-muted)', display: 'block' }}>
-                      In: <b>{item.in_time}</b> | Out: <b>{item.out_time}</b> | Activity: {item.activity_title}
+                      In: <b>{item.in_time}</b> | Out: <b>{item.out_time}</b> ({item.hours || calcHours(item.in_time, item.out_time)}) | Activity: {item.activity_title}
                     </span>
                     {item.replacement_name && (
                       <span style={{ fontSize: '11.5px', color: '#6b21a8', fontWeight: 600 }}>🔀 Substituted by {item.replacement_name}</span>
@@ -662,26 +722,33 @@ export default function CoordinatorPage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
               <div>
                 <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>In Time</label>
                 <input
-                  type="text"
+                  type="time"
                   value={editData.in_time || ''}
                   onChange={(e) => setEditData({ ...editData, in_time: e.target.value })}
-                  style={{ width: '100%', padding: '9px', border: '1px solid var(--prodip-border)', borderRadius: '8px', fontSize: '13px' }}
+                  onClick={(e) => e.target.showPicker?.()}
+                  style={{ width: '100%', padding: '9px', border: '1px solid var(--prodip-border)', borderRadius: '8px', fontSize: '13px', background: '#fff' }}
                 />
               </div>
               <div>
                 <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Out Time</label>
                 <input
-                  type="text"
+                  type="time"
                   value={editData.out_time || ''}
                   onChange={(e) => setEditData({ ...editData, out_time: e.target.value })}
-                  style={{ width: '100%', padding: '9px', border: '1px solid var(--prodip-border)', borderRadius: '8px', fontSize: '13px' }}
+                  onClick={(e) => e.target.showPicker?.()}
+                  style={{ width: '100%', padding: '9px', border: '1px solid var(--prodip-border)', borderRadius: '8px', fontSize: '13px', background: '#fff' }}
                 />
               </div>
             </div>
+            {editData.in_time && editData.out_time && (
+              <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--prodip-border)' }}>
+                ⏱️ Calculated Duration: <b style={{ color: 'var(--prodip-navy)' }}>{calcHours(editData.in_time, editData.out_time)}</b>
+              </div>
+            )}
 
             <div style={{ marginBottom: '16px' }}>
               <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Topic Covered</label>

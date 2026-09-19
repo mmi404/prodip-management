@@ -188,9 +188,11 @@ export default function OneTapCheckInWidget({ onOpenLoginModal }) {
     let calculatedHours = '2.0';
     if (inTime && inTime.includes(':')) {
       const [inH, inM] = inTime.split(':').map(Number);
-      const diffMins = (today.getHours() * 60 + today.getMinutes()) - (inH * 60 + inM);
+      let diffMins = (today.getHours() * 60 + today.getMinutes()) - (inH * 60 + inM);
+      if (diffMins < 0) diffMins += 24 * 60;
       if (diffMins > 0) {
-        calculatedHours = (diffMins / 60).toFixed(1);
+        const dec = diffMins / 60;
+        calculatedHours = dec < 0.05 ? '0.1' : dec.toFixed(1);
       }
     }
 
