@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { CUET_DEPARTMENTS } from '@/lib/cuetDepartments';
 import { Lock, LogIn, UserPlus, AlertCircle, CheckCircle2, X } from 'lucide-react';
 
 export default function LoginModal({ isOpen, onClose, onSuccess }) {
@@ -91,7 +92,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
     setLoading(false);
 
     if (error) {
-      if (error.message.includes('not on the Prodip volunteer roster')) {
+      if (error.message.includes('Database error saving new user') || error.message.includes('not on the Prodip volunteer roster')) {
         const pending = JSON.parse(localStorage.getItem('prodip_pending_registrations') || '[]');
         pending.push({
           student_id: signUpStudentId.trim(),
@@ -103,7 +104,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
         });
         localStorage.setItem('prodip_pending_registrations', JSON.stringify(pending));
 
-        setErrorMsg('Your registration request has been submitted to the Master Admin for roster approval. You will be able to log in once approved.');
+        setErrorMsg('Database trigger error: Please run the updated SQL in supabase/schema.sql in your Supabase SQL Editor so new volunteer signups are automatically linked and accepted.');
         return;
       }
 
@@ -285,11 +286,9 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
                   onChange={(e) => setSignUpDepartment(e.target.value)}
                   style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--prodip-border)', borderRadius: '6px', fontSize: '12.5px', background: 'white' }}
                 >
-                  <option value="CSE">CSE</option>
-                  <option value="EEE">EEE</option>
-                  <option value="ME">ME</option>
-                  <option value="Civil">Civil</option>
-                  <option value="Other">Other</option>
+                  {CUET_DEPARTMENTS.map((dept) => (
+                    <option key={dept.value} value={dept.value}>{dept.label}</option>
+                  ))}
                 </select>
               </div>
               <div>

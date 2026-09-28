@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
+import { CUET_DEPARTMENTS } from '@/lib/cuetDepartments';
 import { Lock, LogIn, UserPlus, AlertCircle, CheckCircle2, ArrowLeft, Shield, User, Info } from 'lucide-react';
 
 function AuthPortal() {
@@ -110,9 +111,7 @@ function AuthPortal() {
     setLoading(false);
 
     if (error) {
-      // If database trigger rejected because email wasn't on roster yet
-      if (error.message.includes('not on the Prodip volunteer roster')) {
-        // Save pending registration request locally for Master Admin
+      if (error.message.includes('Database error saving new user') || error.message.includes('not on the Prodip volunteer roster')) {
         const pending = JSON.parse(localStorage.getItem('prodip_pending_registrations') || '[]');
         pending.push({
           student_id: signUpStudentId.trim(),
@@ -126,7 +125,7 @@ function AuthPortal() {
         localStorage.setItem('prodip_pending_registrations', JSON.stringify(pending));
 
         setErrorMsg(
-          'Your email is not on the official roster yet. Your registration request has been submitted to the Master Admin for roster approval. You will be able to sign in as soon as Admin approves your entry.'
+          'Database trigger error: Please execute the updated SQL script in supabase/schema.sql in your Supabase SQL Editor so new volunteer registrations are automatically linked.'
         );
         return;
       }
@@ -374,14 +373,9 @@ function AuthPortal() {
                   onChange={(e) => setSignUpDepartment(e.target.value)}
                   style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--prodip-border)', borderRadius: '8px', fontSize: '13px', background: 'white' }}
                 >
-                  <option value="CSE">CSE</option>
-                  <option value="EEE">EEE</option>
-                  <option value="ME">ME</option>
-                  <option value="Civil">Civil</option>
-                  <option value="ETE">ETE</option>
-                  <option value="BME">BME</option>
-                  <option value="Architecture">Architecture</option>
-                  <option value="Other">Other</option>
+                  {CUET_DEPARTMENTS.map((dept) => (
+                    <option key={dept.value} value={dept.value}>{dept.label}</option>
+                  ))}
                 </select>
               </div>
 
