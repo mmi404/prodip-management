@@ -34,6 +34,12 @@ export default function Navbar() {
     setMenuOpen(false);
   }, [pathname]);
 
+  // Stop the page scrolling behind the open drawer.
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
   useEffect(() => {
     checkUserRole();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
@@ -216,6 +222,8 @@ export default function Navbar() {
         >
           {isOpen ? <X size={22} color="white" /> : <Menu size={22} color="white" />}
         </button>
+
+        {isOpen && <div className="mobile-nav-backdrop" onClick={closeMenu} />}
 
         <nav className={`ribbon-nav ${isOpen ? 'is-open' : ''}`}>
           {/* DESKTOP: a short, flat, always-the-same link row + the avatar dropdown. */}

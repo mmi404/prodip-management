@@ -708,13 +708,32 @@ svg {
         flex-direction: column;
         align-items: stretch;
         gap: 2px;
-        padding: 14px 0 6px;
-        margin-top: 10px;
-        border-top: 1px solid rgba(255,255,255,0.15);
     }
 
+    /* Floats as its own panel below the header instead of sitting in the
+       page flow — otherwise a role with many links (Master Admin) pushes
+       the whole page's content down by however tall the menu happens to be. */
     .ribbon-nav.is-open {
         display: flex;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        max-height: 75vh;
+        overflow-y: auto;
+        background: var(--prodip-navy);
+        padding: 14px 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+        border-top: 1px solid rgba(255,255,255,0.15);
+        border-radius: 0 0 16px 16px;
+        box-shadow: 0 18px 36px rgba(0,0,0,0.35);
+        z-index: 999;
+    }
+
+    .mobile-nav-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 14, 26, 0.5);
+        z-index: 900;
     }
 
     /* ─── MOBILE DRAWER MENU — one flat list, no state gate, no override chain ─── */
