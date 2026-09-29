@@ -480,16 +480,16 @@ export default function AuditPage() {
           </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
+            <table className="rtable" style={{ width: '100%', minWidth: '920px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid var(--prodip-border)', color: '#64748b' }}>
-                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>STUDENT ID</th>
-                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>VOLUNTEER NAME</th>
-                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>ROLE</th>
-                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>APPROVED / TARGET</th>
-                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>TOTAL VERIFIED HOURS</th>
-                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>CERTIFICATION STATUS</th>
-                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>DESIGNATED SCHEDULE</th>
+                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>STUDENT ID</th>
+                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>VOLUNTEER NAME</th>
+                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>ROLE</th>
+                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>APPROVED / TARGET</th>
+                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>TOTAL VERIFIED HOURS</th>
+                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>CERTIFICATION STATUS</th>
+                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>DESIGNATED SCHEDULE</th>
                 </tr>
               </thead>
               <tbody>
@@ -561,17 +561,17 @@ export default function AuditPage() {
           </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+            <table className="rtable" style={{ width: '100%', minWidth: '920px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
                 <tr style={{ background: '#f1f5f9', borderBottom: '2px solid var(--prodip-border)', color: '#475569' }}>
-                  <th style={{ padding: '10px 12px' }}>DATE</th>
-                  <th style={{ padding: '10px 12px' }}>DAY</th>
-                  <th style={{ padding: '10px 12px' }}>VOLUNTEER ID</th>
-                  <th style={{ padding: '10px 12px' }}>VOLUNTEER NAME</th>
+                  <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>DATE</th>
+                  <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>DAY</th>
+                  <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>VOLUNTEER ID</th>
+                  <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>VOLUNTEER NAME</th>
                   <th style={{ padding: '10px 12px' }}>ACTIVITY</th>
-                  <th style={{ padding: '10px 12px' }}>IN-TIME</th>
-                  <th style={{ padding: '10px 12px' }}>OUT-TIME</th>
-                  <th style={{ padding: '10px 12px' }}>DURATION</th>
+                  <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>IN-TIME</th>
+                  <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>OUT-TIME</th>
+                  <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>DURATION</th>
                   <th style={{ padding: '10px 12px' }}>STATUS</th>
                 </tr>
               </thead>
@@ -579,7 +579,7 @@ export default function AuditPage() {
                 {filteredLogs.length > 0 ? (
                   filteredLogs.map((log) => (
                     <tr key={log.id} style={{ borderBottom: '1px solid var(--prodip-border)' }}>
-                      <td data-label="Date" style={{ padding: '10px 12px' }}><b>{log.session_date}</b></td>
+                      <td data-label="Date" style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}><b>{log.session_date}</b></td>
                       <td data-label="Day" style={{ padding: '10px 12px' }}>{log.day_of_week}</td>
                       <td data-label="Volunteer ID" style={{ padding: '10px 12px' }}>{log.credited_to_id || log.instructor_id}</td>
                       <td data-label="Volunteer" style={{ padding: '10px 12px' }}>

@@ -298,23 +298,23 @@ export default function ProfilePage() {
         </div>
 
         <div style={{ overflowX: 'auto' }}>
-          <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
+          <table className="rtable" style={{ width: '100%', minWidth: '840px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--prodip-border)', color: '#64748b' }}>
-                <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>DATE &amp; DAY</th>
+                <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>DATE &amp; DAY</th>
                 <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>ACTIVITY</th>
-                <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>ATTENDANCE STATUS</th>
-                <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>IN TIME</th>
-                <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>OUT TIME</th>
-                <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>HOURS</th>
-                <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>APPROVAL</th>
+                <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>ATTENDANCE STATUS</th>
+                <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>IN TIME</th>
+                <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>OUT TIME</th>
+                <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>HOURS</th>
+                <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>APPROVAL</th>
               </tr>
             </thead>
             <tbody>
               {logs.length > 0 ? (
                 logs.map((log) => (
                   <tr key={log.id} style={{ borderBottom: '1px solid var(--prodip-border)' }}>
-                    <td data-label="Date" style={{ padding: '14px 12px' }}>
+                    <td data-label="Date" style={{ padding: '14px 12px', whiteSpace: 'nowrap' }}>
                       <b>{log.session_date}</b>
                       <span style={{ fontSize: '11.5px', color: 'var(--prodip-muted)', display: 'block' }}>{log.day_of_week}</span>
                     </td>

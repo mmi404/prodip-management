@@ -413,16 +413,16 @@ export default function CoordinatorPage() {
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
+              <table className="rtable" style={{ width: '100%', minWidth: '880px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--prodip-border)', color: '#475569' }}>
-                    <th style={{ padding: '12px' }}>MENTOR</th>
-                    <th style={{ padding: '12px' }}>DAYS</th>
-                    <th style={{ padding: '12px' }}>IN</th>
-                    <th style={{ padding: '12px' }}>OUT</th>
-                    <th style={{ padding: '12px' }}>DURATION</th>
-                    <th style={{ padding: '12px' }}>REPLACEMENT</th>
-                    <th style={{ padding: '12px', textAlign: 'right' }}>ACTIONS</th>
+                    <th style={{ padding: '12px', whiteSpace: 'nowrap' }}>MENTOR</th>
+                    <th style={{ padding: '12px', whiteSpace: 'nowrap' }}>DAYS</th>
+                    <th style={{ padding: '12px', whiteSpace: 'nowrap' }}>IN</th>
+                    <th style={{ padding: '12px', whiteSpace: 'nowrap' }}>OUT</th>
+                    <th style={{ padding: '12px', whiteSpace: 'nowrap' }}>DURATION</th>
+                    <th style={{ padding: '12px', whiteSpace: 'nowrap' }}>REPLACEMENT</th>
+                    <th style={{ padding: '12px', textAlign: 'right', whiteSpace: 'nowrap' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>

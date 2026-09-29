@@ -249,10 +249,10 @@ export default function AdminPage() {
           </h3>
 
           <div style={{ overflowX: 'auto' }}>
-            <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
+            <table className="rtable" style={{ width: '100%', minWidth: '760px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--prodip-border)', color: '#475569' }}>
-                  <th style={{ padding: '10px 12px' }}>Date</th>
+                  <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>Date</th>
                   <th style={{ padding: '10px 12px' }}>Volunteer</th>
                   <th style={{ padding: '10px 12px' }}>Activity</th>
                   <th style={{ padding: '10px 12px' }}>Times</th>
@@ -264,7 +264,7 @@ export default function AdminPage() {
                 {pendingLogs.length > 0 ? (
                   pendingLogs.map(log => (
                     <tr key={log.id} style={{ borderBottom: '1px solid var(--prodip-border)' }}>
-                      <td data-label="Date" style={{ padding: '12px' }}><b>{log.session_date}</b> <span style={{ fontSize: '11px', color: 'var(--prodip-muted)' }}>({log.day_of_week})</span></td>
+                      <td data-label="Date" style={{ padding: '12px', whiteSpace: 'nowrap' }}><b>{log.session_date}</b> <span style={{ fontSize: '11px', color: 'var(--prodip-muted)' }}>({log.day_of_week})</span></td>
                       <td data-label="Volunteer" style={{ padding: '12px' }}>{log.instructor_name} <br/><span style={{ fontSize: '11px', color: 'var(--prodip-muted)' }}>ID: {log.instructor_id}</span></td>
                       <td data-label="Activity" style={{ padding: '12px' }}>{log.activity_title}</td>
                       <td data-label="Time" style={{ padding: '12px' }}>
@@ -278,14 +278,14 @@ export default function AdminPage() {
                             className="btn-row"
                             disabled={!log.out_time}
                             title={!log.out_time ? 'No out-time recorded yet' : ''}
-                            style={{ background: log.out_time ? 'var(--status-success-solid)' : '#94a3b8', color: 'white' }}
+                            style={{ background: log.out_time ? 'var(--status-success-solid)' : '#94a3b8', color: 'white', minWidth: '104px' }}
                             onClick={() => decideLog(log, 'Approved')}
                           >
                             <Check size={13} /> Approve
                           </button>
                           <button
                             className="btn-row"
-                            style={{ background: 'var(--status-danger-solid)', color: 'white' }}
+                            style={{ background: 'var(--status-danger-solid)', color: 'white', minWidth: '104px' }}
                             onClick={() => decideLog(log, 'Rejected')}
                           >
                             <X size={13} /> Reject
@@ -339,10 +339,10 @@ export default function AdminPage() {
           </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
+            <table className="rtable" style={{ width: '100%', minWidth: '780px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--prodip-border)', color: '#475569' }}>
-                  <th style={{ padding: '10px 12px' }}>Student ID</th>
+                  <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>Student ID</th>
                   <th style={{ padding: '10px 12px' }}>Full Name</th>
                   <th style={{ padding: '10px 12px' }}>Dept / Batch</th>
                   <th style={{ padding: '10px 12px' }}>Role Level</th>

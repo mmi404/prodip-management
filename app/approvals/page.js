@@ -292,10 +292,10 @@ export default function ApprovalsPage() {
           </p>
 
           <div style={{ overflowX: 'auto' }}>
-            <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
+            <table className="rtable" style={{ width: '100%', minWidth: '980px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid var(--prodip-border)', color: '#64748b' }}>
-                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>SESSION DATE</th>
+                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>SESSION DATE</th>
                   <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>ACTIVITY</th>
                   <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>MENTOR CREDITED</th>
                   <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>ATTENDEE TYPE</th>
@@ -309,12 +309,12 @@ export default function ApprovalsPage() {
                 {filteredLogs.length > 0 ? (
                   filteredLogs.map((log) => (
                     <tr key={log.id} style={{ borderBottom: '1px solid var(--prodip-border)' }}>
-                      <td data-label="Date" style={{ padding: '14px 12px' }}>
+                      <td data-label="Date" style={{ padding: '14px 12px', whiteSpace: 'nowrap' }}>
                         <b>{log.session_date}</b>
                         <span style={{ fontSize: '11.5px', color: 'var(--prodip-muted)', display: 'block' }}>{log.day_of_week}</span>
                       </td>
                       <td data-label="Activity" style={{ padding: '14px 12px' }}>
-                        <span style={{ background: '#f3e8ff', color: '#6b21a8', fontSize: '11.5px', fontWeight: 700, padding: '3px 9px', borderRadius: '6px' }}>
+                        <span className="badge" style={{ background: '#f3e8ff', color: '#6b21a8' }}>
                           {log.activity_title}
                         </span>
                       </td>
@@ -350,14 +350,14 @@ export default function ApprovalsPage() {
                               disabled={!log.out_time}
                               title={!log.out_time ? 'No out-time recorded yet' : ''}
                               onClick={() => decide(log, 'Approved')}
-                              style={{ background: !log.out_time ? '#94a3b8' : 'var(--status-success-solid)', color: 'white' }}
+                              style={{ background: !log.out_time ? '#94a3b8' : 'var(--status-success-solid)', color: 'white', minWidth: '104px' }}
                             >
                               <Check size={14} /> Approve
                             </button>
                             <button
                               className="btn-row"
                               onClick={() => decide(log, 'Rejected')}
-                              style={{ background: 'var(--status-danger-solid)', color: 'white' }}
+                              style={{ background: 'var(--status-danger-solid)', color: 'white', minWidth: '104px' }}
                             >
                               <X size={14} /> Reject
                             </button>
@@ -408,7 +408,7 @@ export default function ApprovalsPage() {
           </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
+            <table className="rtable" style={{ width: '100%', minWidth: '760px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--prodip-border)', color: '#475569' }}>
                   <th style={{ padding: '12px' }}>STUDENT ID</th>
