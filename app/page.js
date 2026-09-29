@@ -7,12 +7,15 @@ import PushNotificationPrompt from '@/components/PushNotificationPrompt';
 import SubstituteNotificationBanner from '@/components/SubstituteNotificationBanner';
 import OneTapCheckInWidget from '@/components/OneTapCheckInWidget';
 import LoginModal from '@/components/LoginModal';
-import { BookOpen, LogIn, ArrowRight } from 'lucide-react';
+import { fetchCurrentVolunteer } from '@/lib/volunteer';
+import { BookOpen, LogIn, ArrowRight, User, Shield, ShieldCheck, CheckSquare, ArrowRightLeft, Award } from 'lucide-react';
 
 export default function HomePage() {
   const [activities, setActivities] = useState([]);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [roleLevel, setRoleLevel] = useState(0);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     fetchActivities();
@@ -27,11 +30,18 @@ export default function HomePage() {
   const checkSession = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     setIsLoggedIn(!!session);
+    if (session) {
+      const vol = await fetchCurrentVolunteer(session);
+      setRoleLevel(vol?.role_level || 1);
+    } else {
+      setRoleLevel(0);
+    }
   };
 
   const fetchActivities = async () => {
     const { data } = await supabase.from('activities').select('*').eq('status', 'Active').order('title');
-    if (data) setActivities(data);
+    setActivities(data || []);
+    setLoaded(true);
   };
 
   return (
@@ -116,7 +126,7 @@ export default function HomePage() {
         আমাদের নিয়মিত কার্যক্রমসমূহ
       </h2>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px', marginTop: '18px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '18px', marginTop: '18px' }}>
         {activities.length > 0 ? (
           activities.map((act) => (
             <div key={act.id} className="card" style={{ padding: '24px', lineHeight: 1.6 }}>
@@ -126,10 +136,48 @@ export default function HomePage() {
           ))
         ) : (
           <div className="card" style={{ padding: '24px', textAlign: 'center', color: 'var(--prodip-muted)' }}>
-            Loading regular activities...
+            {loaded ? 'No activities have been published yet.' : 'Loading regular activities...'}
           </div>
         )}
       </div>
+
+      {/* ROLE-BASED QUICK ACCESS — visible right below the activities, so phone users never have to hunt for the sheet */}
+      {isLoggedIn && (
+        <div style={{ marginTop: '28px' }}>
+          <h2 className="section-title" style={{ fontSize: '20px', color: 'var(--prodip-navy)', marginBottom: '14px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Shield size={18} color="var(--prodip-olive)" />
+            আপনার প্যানেল · Your Panels
+          </h2>
+          <div className="panel-grid">
+            <Link href="/profile" className="btn-panel-link" style={{ background: 'var(--prodip-navy)' }}>
+              <User size={18} /> Mentor Dashboard
+            </Link>
+            <Link href="/substitute" className="btn-panel-link" style={{ background: '#b45309' }}>
+              <ArrowRightLeft size={18} /> Substitute Requests
+            </Link>
+            {roleLevel >= 3 && (
+              <Link href="/coordinator" className="btn-panel-link coord-bg">
+                <Shield size={18} /> Coordinator Sheet
+              </Link>
+            )}
+            {roleLevel >= 4 && (
+              <Link href="/approvals" className="btn-panel-link admin-bg">
+                <CheckSquare size={18} /> Approvals
+              </Link>
+            )}
+            {roleLevel >= 3 && (
+              <Link href="/audit" className="btn-panel-link" style={{ background: '#0f766e' }}>
+                <Award size={18} /> Milestones &amp; Certs
+              </Link>
+            )}
+            {roleLevel >= 6 && (
+              <Link href="/admin" className="btn-panel-link admin-bg">
+                <ShieldCheck size={18} /> Volunteers &amp; Roles
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
       <LoginModal
         isOpen={isLoginModalOpen}

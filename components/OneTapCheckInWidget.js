@@ -2,220 +2,187 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { fetchCurrentVolunteer } from '@/lib/volunteer';
+import { DAY_NAMES, localDateStr, nowHHMM, durationMinutes, calcHours, formatClock } from '@/lib/time';
 import { Zap, Square, CheckCircle2, Calendar, AlertTriangle, Clock, X, Check } from 'lucide-react';
+
+const DEFAULT_ACTIVITY = 'Teaching and Mentorship';
 
 export default function OneTapCheckInWidget({ onOpenLoginModal }) {
   const [activeVolunteer, setActiveVolunteer] = useState(null);
   const [isScheduledToday, setIsScheduledToday] = useState(false);
   const [scheduleReason, setScheduleReason] = useState(''); // 'designated' | 'substitute'
+  const [substituteReq, setSubstituteReq] = useState(null); // accepted request row, when substituting
+  const [activityTitle, setActivityTitle] = useState(DEFAULT_ACTIVITY);
   const [sessionState, setSessionState] = useState('A'); // 'A' = ready to check in, 'B' = ongoing, 'C' = completed
-  const [inTime, setInTime] = useState('--:--');
-  const [outTime, setOutTime] = useState('--:--');
-  const [totalHours, setTotalHours] = useState('2.0');
+  const [openLogId, setOpenLogId] = useState(null);
+  const [logStatus, setLogStatus] = useState('Pending');
+  const [inTime, setInTime] = useState('');
+  const [outTime, setOutTime] = useState('');
   const [dayLabel, setDayLabel] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   // Confirmation modal states to prevent accidental taps
   const [confirmModalType, setConfirmModalType] = useState(null); // 'checkin' | 'checkout' | null
   const [currentTimePreview, setCurrentTimePreview] = useState('');
 
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
   useEffect(() => {
     checkSession();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => checkSession());
+    return () => subscription.unsubscribe();
   }, []);
 
   const checkSession = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     const today = new Date();
-    const todayDayName = dayNames[today.getDay()];
-    const y = today.getFullYear(), m = String(today.getMonth() + 1).padStart(2, '0'), d = String(today.getDate()).padStart(2, '0');
-    const todayStr = `${y}-${m}-${d}`;
+    const todayDayName = DAY_NAMES[today.getDay()];
+    const todayStr = localDateStr(today);
 
-    // 1. PUBLIC GUEST: If not logged in, completely hide widget
+    // 1. PUBLIC GUEST: hide widget completely
     if (!session) {
       setActiveVolunteer(null);
       setIsScheduledToday(false);
       return;
     }
 
-    // 2. LOGGED IN: Fetch volunteer record
-    let vol = null;
-    const { data: volData } = await supabase
-      .from('volunteers')
-      .select('*')
-      .eq('auth_user_id', session.user.id)
-      .single();
-
-    if (volData) {
-      vol = volData;
-    } else {
-      const { data: volByEmail } = await supabase
-        .from('volunteers')
-        .select('*')
-        .eq('email', session.user.email)
-        .single();
-
-      if (volByEmail) {
-        vol = volByEmail;
-      } else {
-        const studentId = session.user.user_metadata?.student_id || session.user.email?.split('@')[0] || 'VOLUNTEER';
-        const fullName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Volunteer';
-        vol = {
-          student_id: studentId,
-          full_name: fullName,
-          email: session.user.email,
-          designated_days: [],
-          target_classes: 20
-        };
-      }
-    }
-
+    // 2. LOGGED IN: resolve roster row
+    const vol = await fetchCurrentVolunteer(session);
     setActiveVolunteer(vol);
 
-    // 3. CHECK SCHEDULE ELIGIBILITY:
-    // A. Is today in designated_days?
+    // 3. ELIGIBILITY: designated today, or an accepted substitute request for today
     const userDays = Array.isArray(vol.designated_days) ? vol.designated_days : [];
     const isDesignated = userDays.includes(todayDayName);
 
-    // B. Is volunteer an accepted substitute for today?
-    const substituteRequests = JSON.parse(localStorage.getItem('prodip_substitute_requests') || '[]');
-    const isSubstitute = substituteRequests.some(r =>
-      r.to_id === vol.student_id &&
-      (r.class_date === todayStr || r.class_date === todayDayName) &&
-      r.status === 'accepted'
-    );
+    const { data: subReq } = await supabase
+      .from('substitute_requests')
+      .select('*')
+      .eq('to_id', vol.student_id)
+      .eq('class_date', todayStr)
+      .eq('status', 'accepted')
+      .limit(1)
+      .maybeSingle();
+    const isSubstitute = !!subReq;
+    setSubstituteReq(subReq || null);
 
     if (!isDesignated && !isSubstitute) {
       setIsScheduledToday(false);
-      setDayLabel(`No class scheduled for you today (${todayDayName})`);
       return;
     }
 
-    // Eligible!
     setIsScheduledToday(true);
     setScheduleReason(isSubstitute ? 'substitute' : 'designated');
-    setDayLabel(isSubstitute
-      ? `Today is your Accepted Substitute Class (${todayDayName})`
-      : `Today is your Designated Class Session (${todayDayName})`
+    setDayLabel(
+      isSubstitute
+        ? `Today is your accepted substitute class (${todayDayName})`
+        : `Today is your designated class session (${todayDayName})`
     );
 
-    // 4. CHECK EXISTING LOG FOR TODAY:
+    // Prefer the standard mentoring activity if it exists, else the first active one.
+    const { data: acts } = await supabase.from('activities').select('title').eq('status', 'Active').order('title');
+    if (acts && acts.length > 0) {
+      setActivityTitle(acts.find((a) => a.title === DEFAULT_ACTIVITY)?.title || acts[0].title);
+    }
+
+    // 4. TODAY'S LOG — the database is the only source of truth (no localStorage copy).
     const { data: logs } = await supabase
       .from('attendance_logs')
       .select('*')
       .eq('credited_to_id', vol.student_id)
       .eq('session_date', todayStr)
-      .order('id', { ascending: false });
+      .neq('status', 'Rejected')
+      .order('id', { ascending: false })
+      .limit(1);
 
-    const localLog = JSON.parse(localStorage.getItem(`self_session_${vol.student_id}_${todayStr}`) || 'null');
-    const existingLog = (logs && logs.length > 0) ? logs[0] : localLog;
-
-    if (!existingLog) {
-      setSessionState('A'); // Ready to check in
-    } else if (!existingLog.out_time) {
-      setSessionState('B'); // Session currently ongoing
-      setInTime(existingLog.in_time);
+    const existing = logs && logs.length > 0 ? logs[0] : null;
+    if (!existing) {
+      setSessionState('A');
+      setOpenLogId(null);
+    } else if (!existing.out_time) {
+      setSessionState('B');
+      setOpenLogId(existing.id);
+      setInTime(existing.in_time);
     } else {
-      // Both in_time and out_time exist -> Completed for today!
       setSessionState('C');
-      setInTime(existingLog.in_time);
-      setOutTime(existingLog.out_time);
-      setTotalHours(existingLog.hours || '2.0');
+      setInTime(existing.in_time);
+      setOutTime(existing.out_time);
+      setLogStatus(existing.status);
     }
   };
 
   const openConfirmation = (type) => {
-    const now = new Date();
-    const hh = String(now.getHours()).padStart(2, '0');
-    const mm = String(now.getMinutes()).padStart(2, '0');
-    setCurrentTimePreview(`${hh}:${mm}`);
+    setErrorMsg('');
+    setCurrentTimePreview(formatClock(nowHHMM()));
     setConfirmModalType(type);
   };
 
-  const closeConfirmation = () => {
-    setConfirmModalType(null);
-  };
+  const closeConfirmation = () => setConfirmModalType(null);
 
   const handleConfirmCheckIn = async () => {
     closeConfirmation();
-    if (!activeVolunteer) return;
+    if (!activeVolunteer || busy) return;
+    setBusy(true);
+    setErrorMsg('');
 
     const today = new Date();
-    const todayDayName = dayNames[today.getDay()];
-    const y = today.getFullYear(), m = String(today.getMonth() + 1).padStart(2, '0'), d = String(today.getDate()).padStart(2, '0');
-    const todayStr = `${y}-${m}-${d}`;
-    const hh = String(today.getHours()).padStart(2, '0');
-    const mm = String(today.getMinutes()).padStart(2, '0');
-    const currentTime = `${hh}:${mm}`;
+    const isSub = scheduleReason === 'substitute' && substituteReq;
 
+    // Replacement Teacher rule: the original mentor stays on record as instructor,
+    // the person who actually taught is the replacement and gets the credit.
     const payload = {
-      session_date: todayStr,
-      day_of_week: todayDayName,
-      activity_title: 'Teaching and Mentorship',
-      instructor_id: activeVolunteer.student_id,
-      instructor_name: activeVolunteer.full_name,
-      replacement_id: null,
-      replacement_name: null,
+      session_date: localDateStr(today),
+      day_of_week: DAY_NAMES[today.getDay()],
+      activity_title: activityTitle,
+      instructor_id: isSub ? substituteReq.from_id : activeVolunteer.student_id,
+      instructor_name: isSub ? substituteReq.from_name : activeVolunteer.full_name,
+      replacement_id: isSub ? activeVolunteer.student_id : null,
+      replacement_name: isSub ? activeVolunteer.full_name : null,
       credited_to_id: activeVolunteer.student_id,
-      in_time: currentTime,
+      in_time: nowHHMM(today),
       out_time: null,
-      topic_covered: scheduleReason === 'substitute' ? 'Substitute Class Attendance' : 'Designated Class Attendance',
+      topic_covered: isSub ? 'Substitute Class Attendance' : 'Designated Class Attendance',
       is_designated_day: scheduleReason === 'designated',
       validator_id: activeVolunteer.student_id,
       verified_by: `1-Tap Check-In: ${activeVolunteer.full_name} (${activeVolunteer.student_id})`,
       status: 'Pending'
     };
 
-    localStorage.setItem(`self_session_${activeVolunteer.student_id}_${todayStr}`, JSON.stringify(payload));
-    await supabase.from('attendance_logs').insert([payload]);
+    const { data, error } = await supabase.from('attendance_logs').insert([payload]).select('id').single();
+    setBusy(false);
 
-    setInTime(currentTime);
+    if (error) {
+      setErrorMsg(`Check-in was NOT saved: ${error.message}`);
+      return;
+    }
+
+    setOpenLogId(data.id);
+    setInTime(payload.in_time);
     setSessionState('B');
   };
 
   const handleConfirmCheckOut = async () => {
     closeConfirmation();
-    if (!activeVolunteer) return;
+    if (!activeVolunteer || busy || !openLogId) return;
+    setBusy(true);
+    setErrorMsg('');
 
-    const today = new Date();
-    const y = today.getFullYear(), m = String(today.getMonth() + 1).padStart(2, '0'), d = String(today.getDate()).padStart(2, '0');
-    const todayStr = `${y}-${m}-${d}`;
-    const hh = String(today.getHours()).padStart(2, '0');
-    const mm = String(today.getMinutes()).padStart(2, '0');
-    const currentTime = `${hh}:${mm}`;
-
-    // Calculate hours
-    let calculatedHours = '2.0';
-    if (inTime && inTime.includes(':')) {
-      const [inH, inM] = inTime.split(':').map(Number);
-      let diffMins = (today.getHours() * 60 + today.getMinutes()) - (inH * 60 + inM);
-      if (diffMins < 0) diffMins += 24 * 60;
-      if (diffMins > 0) {
-        const dec = diffMins / 60;
-        calculatedHours = dec < 0.05 ? '0.1' : dec.toFixed(1);
-      }
+    const currentTime = nowHHMM();
+    if (durationMinutes(inTime, currentTime) === null) {
+      setBusy(false);
+      setErrorMsg('Your device clock is earlier than your check-in time. Ask a coordinator to fix this session.');
+      return;
     }
 
-    const localLog = JSON.parse(localStorage.getItem(`self_session_${activeVolunteer.student_id}_${todayStr}`) || '{}');
-    localLog.out_time = currentTime;
-    localLog.hours = calculatedHours;
-    localStorage.setItem(`self_session_${activeVolunteer.student_id}_${todayStr}`, JSON.stringify(localLog));
+    const { error } = await supabase.from('attendance_logs').update({ out_time: currentTime }).eq('id', openLogId);
+    setBusy(false);
 
-    const { data } = await supabase
-      .from('attendance_logs')
-      .select('id')
-      .eq('credited_to_id', activeVolunteer.student_id)
-      .eq('session_date', todayStr)
-      .is('out_time', null);
-
-    if (data && data.length > 0) {
-      await supabase.from('attendance_logs').update({ out_time: currentTime, hours: calculatedHours }).eq('id', data[0].id);
-    } else {
-      await supabase.from('attendance_logs').insert([localLog]);
+    if (error) {
+      setErrorMsg(`Check-out was NOT saved: ${error.message}`);
+      return;
     }
 
     setOutTime(currentTime);
-    setTotalHours(calculatedHours);
+    setLogStatus('Pending');
     setSessionState('C');
   };
 
@@ -286,7 +253,7 @@ export default function OneTapCheckInWidget({ onOpenLoginModal }) {
               Today's Class Session Completed!
             </b>
             <span style={{ fontSize: '12.5px', color: '#15803d' }}>
-              Checked In: <b>{inTime}</b> · Checked Out: <b>{outTime}</b> ({totalHours} Hours logged)
+              In <b>{formatClock(inTime)}</b> · Out <b>{formatClock(outTime)}</b> · <b>{calcHours(inTime, outTime)}</b> logged
             </span>
           </div>
         </div>
@@ -298,7 +265,7 @@ export default function OneTapCheckInWidget({ onOpenLoginModal }) {
           fontSize: '11.5px',
           fontWeight: 800
         }}>
-          Sent for Master Approval
+          {logStatus === 'Approved' ? 'Approved ✓' : 'Sent for Approval'}
         </span>
       </div>
     );
@@ -312,9 +279,15 @@ export default function OneTapCheckInWidget({ onOpenLoginModal }) {
           {dayLabel}
         </div>
 
+        {errorMsg && (
+          <div style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 12px', fontSize: '12.5px', fontWeight: 600, margin: '8px auto 4px', maxWidth: '460px', textAlign: 'left' }}>
+            {errorMsg}
+          </div>
+        )}
+
         {sessionState === 'A' && (
           <div>
-            <button className="circular-tap-btn checkin" onClick={() => openConfirmation('checkin')}>
+            <button className="circular-tap-btn checkin" disabled={busy} onClick={() => openConfirmation('checkin')}>
               <Zap size={32} />
               <span>CHECK IN</span>
             </button>
@@ -326,12 +299,12 @@ export default function OneTapCheckInWidget({ onOpenLoginModal }) {
 
         {sessionState === 'B' && (
           <div>
-            <button className="circular-tap-btn checkout" onClick={() => openConfirmation('checkout')}>
+            <button className="circular-tap-btn checkout" disabled={busy} onClick={() => openConfirmation('checkout')}>
               <Square size={32} />
               <span>CHECK OUT</span>
             </button>
             <div className="tap-subtitle">
-              🟢 Session Ongoing (Started at <b>{inTime}</b>) · Tap to finish today's session
+              🟢 Session ongoing (started <b>{formatClock(inTime)}</b>) · Tap to finish today&apos;s session
             </div>
           </div>
         )}

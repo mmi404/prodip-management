@@ -4,7 +4,12 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import QuickSwitcher from '@/components/QuickSwitcher';
 import AuthGate from '@/components/AuthGate';
+import { escapeHtml as esc } from '@/lib/escapeHtml';
+import { formatClock, logDuration, sumMinutes, formatMinutes, minutesToDecimalHours } from '@/lib/time';
 import { Award, Download, Printer, CheckCircle, Search, FileText } from 'lucide-react';
+
+const ROLE_NAMES = { 1: 'Trainee', 2: 'Volunteer', 3: 'Coordinator', 4: 'Sr. Coordinator', 5: 'Asst. Director', 6: 'Admin' };
+const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
 export default function AuditPage() {
   const [activeTab, setActiveTab] = useState('audit'); // 'audit' | 'all-entries'
@@ -26,7 +31,7 @@ export default function AuditPage() {
     if (v.designated && typeof v.designated === 'string' && v.designated.trim()) {
       return v.designated;
     }
-    return 'Sunday, Tuesday, Friday';
+    return '—';
   };
 
   const fetchAuditData = async () => {
@@ -46,25 +51,21 @@ export default function AuditPage() {
         return isCredited && isApproved;
       });
 
-      let approved = matchingLogs.length;
-      let totalVerifiedHours = matchingLogs.reduce((sum, l) => {
-        const h = parseFloat(l.hours);
-        return sum + (isNaN(h) ? 2.0 : h);
-      }, 0);
+      const approved = matchingLogs.length;
+      const totalMins = sumMinutes(matchingLogs);
 
-
-
-      const target = v.target_classes || 36;
+      const target = v.target_classes || 20;
       const pct = target > 0 ? Math.min(100, Math.round((approved / target) * 100)) : 0;
       const left = Math.max(0, target - approved);
       const schedule = formatSchedule(v);
-      const hoursStr = `${totalVerifiedHours.toFixed(1)} Hours`;
+      const hoursStr = formatMinutes(totalMins);
 
       return {
         ...v,
         approved_classes: approved,
         target_classes: target,
         total_hours: hoursStr,
+        total_minutes: totalMins,
         completion_pct: pct,
         classes_left: left,
         designated_display: schedule
@@ -75,19 +76,29 @@ export default function AuditPage() {
   };
 
   const handleExportCSV = () => {
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Student ID,Volunteer Name,Email,Approved Classes,Target Classes,Verified Hours,Designated Schedule\n";
-    volunteers.forEach(v => {
-      const target = v.target_classes || 36;
-      csvContent += `${v.student_id},${v.full_name},${v.email || ''},${v.approved_classes || 0},${target},${v.total_hours || '0.0 Hours'},"${v.designated_display || formatSchedule(v)}"\n`;
+    const rows = [['Student ID', 'Volunteer Name', 'Email', 'Approved Classes', 'Target Classes', 'Verified Hours (decimal)', 'Verified Time', 'Designated Schedule']];
+    volunteers.forEach((v) => {
+      rows.push([
+        v.student_id,
+        v.full_name,
+        v.email || '',
+        v.approved_classes || 0,
+        v.target_classes || 20,
+        minutesToDecimalHours(v.total_minutes || 0),
+        v.total_hours || '0 min',
+        v.designated_display || formatSchedule(v)
+      ]);
     });
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Prodip_Milestone_Audit_${new Date().toISOString().substring(0,10)}.csv`);
+    // Blob (not a data: URI) so names containing # or , can't corrupt the file; BOM keeps Excel happy with Bangla names.
+    const blob = new Blob(['\ufeff' + rows.map((r) => r.map(csvCell).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Prodip_Milestone_Audit_${new Date().toISOString().substring(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handlePrint = () => {
@@ -118,19 +129,19 @@ export default function AuditPage() {
 
       const rows = filteredVolunteers.map((v) => {
         const approved = v.approved_classes || 0;
-        const target = v.target_classes || 36;
+        const target = v.target_classes || 20;
         const pct = v.completion_pct !== undefined ? v.completion_pct : (target > 0 ? Math.min(100, Math.round((approved / target) * 100)) : 0);
         const left = v.classes_left !== undefined ? v.classes_left : Math.max(0, target - approved);
-        const hours = v.total_hours || `${(approved * 2.0).toFixed(1)} Hours`;
+        const hours = v.total_hours || '0 min';
         const designated = v.designated_display || formatSchedule(v);
         return `
           <tr>
-            <td style="font-weight: 700; color: #1e2c4f;">${v.student_id || '—'}</td>
+            <td style="font-weight: 700; color: #1e2c4f;">${esc(v.student_id) || '—'}</td>
             <td>
-              <div style="font-weight: 700; color: #0f172a; font-size: 10px;">${v.full_name}</div>
-              <div style="color: #64748b; font-size: 8.5px;">${v.email || `${v.student_id}@prodip.org`}</div>
+              <div style="font-weight: 700; color: #0f172a; font-size: 10px;">${esc(v.full_name)}</div>
+              <div style="color: #64748b; font-size: 8.5px;">${esc(v.email || '')}</div>
             </td>
-            <td style="color: #475569;">${v.role || 'Mentor'}</td>
+            <td style="color: #475569;">${esc(ROLE_NAMES[v.role_level] || 'Volunteer')}</td>
             <td>
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
                 <span style="font-weight: 700; color: #0f172a;">${approved}</span>
@@ -140,13 +151,13 @@ export default function AuditPage() {
                 <div style="background: #059669; width: ${pct}%; height: 100%;"></div>
               </div>
             </td>
-            <td style="font-weight: 700; color: #0f172a;">${hours}</td>
+            <td style="font-weight: 700; color: #0f172a;">${esc(hours)}</td>
             <td>
               <span style="display: inline-block; padding: 2px 6px; border-radius: 10px; font-size: 8.5px; font-weight: 700; background: ${left === 0 ? '#dcfce7' : '#f1f5f9'}; color: ${left === 0 ? '#166534' : '#475569'};">
                 ${left === 0 ? 'Eligible ✓' : `${left} classes left`}
               </span>
             </td>
-            <td style="color: #475569; font-size: 9.5px;">${designated}</td>
+            <td style="color: #475569; font-size: 9.5px;">${esc(designated)}</td>
           </tr>
         `;
       }).join('');
@@ -168,7 +179,7 @@ export default function AuditPage() {
               <th>VOLUNTEER NAME</th>
               <th>ROLE</th>
               <th>APPROVED / TARGET</th>
-              <th>TOTAL VERIFIED HOURS</th>
+              <th>VERIFIED TIME</th>
               <th>CERTIFICATION STATUS</th>
               <th>DESIGNATED SCHEDULE</th>
             </tr>
@@ -179,21 +190,21 @@ export default function AuditPage() {
         </table>
       `;
     } else {
-      reportTitle = '📊 PRODIP — Approved Master Attendance Register';
+      reportTitle = '📊 PRODIP — Master Attendance Register';
       reportSubtitle = 'Complete historical database register of all verified checked-in sessions · CUET';
-      recordCount = attendanceLogs.length;
+      recordCount = filteredLogs.length;
 
-      const rows = attendanceLogs.length > 0 ? attendanceLogs.map((log) => `
+      const rows = filteredLogs.length > 0 ? filteredLogs.map((log) => `
         <tr>
-          <td style="font-weight: 700;">${log.session_date}</td>
-          <td>${log.day_of_week}</td>
-          <td>${log.instructor_id}</td>
-          <td><strong>${log.instructor_name}</strong></td>
-          <td>${log.activity_title}</td>
-          <td>${log.in_time}</td>
-          <td>${log.out_time || '--'}</td>
-          <td>${log.topic_covered || 'N/A'}</td>
-          <td>${log.status}</td>
+          <td style="font-weight: 700;">${esc(log.session_date)}</td>
+          <td>${esc(log.day_of_week)}</td>
+          <td>${esc(log.credited_to_id || log.instructor_id)}</td>
+          <td><strong>${esc(log.replacement_name || log.instructor_name)}</strong></td>
+          <td>${esc(log.activity_title)}</td>
+          <td>${esc(formatClock(log.in_time))}</td>
+          <td>${log.out_time ? esc(formatClock(log.out_time)) : '--'}</td>
+          <td>${esc(logDuration(log))}</td>
+          <td>${esc(log.status)}</td>
         </tr>
       `).join('') : `
         <tr><td colspan="9" style="text-align: center; padding: 15px;">No attendance records found.</td></tr>
@@ -203,13 +214,13 @@ export default function AuditPage() {
         <table>
           <colgroup>
             <col style="width: 10%;" />
-            <col style="width: 8%;" />
+            <col style="width: 9%;" />
             <col style="width: 11%;" />
-            <col style="width: 18%;" />
+            <col style="width: 19%;" />
             <col style="width: 15%;" />
-            <col style="width: 9%;" />
-            <col style="width: 9%;" />
-            <col style="width: 12%;" />
+            <col style="width: 10%;" />
+            <col style="width: 10%;" />
+            <col style="width: 8%;" />
             <col style="width: 8%;" />
           </colgroup>
           <thead>
@@ -221,7 +232,7 @@ export default function AuditPage() {
               <th>ACTIVITY</th>
               <th>IN-TIME</th>
               <th>OUT-TIME</th>
-              <th>TOPIC COVERED</th>
+              <th>DURATION</th>
               <th>STATUS</th>
             </tr>
           </thead>
@@ -237,7 +248,7 @@ export default function AuditPage() {
       <html>
       <head>
         <meta charset="utf-8" />
-        <title>${reportTitle} - ${printDate}</title>
+        <title>${esc(reportTitle)} - ${esc(printDate)}</title>
         <style>
           @page {
             size: A4 landscape;
@@ -372,9 +383,19 @@ export default function AuditPage() {
     }, 250);
   };
 
+  const q = searchQuery.toLowerCase();
   const filteredVolunteers = volunteers.filter(v =>
-    v.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    v.student_id.toLowerCase().includes(searchQuery.toLowerCase())
+    v.full_name.toLowerCase().includes(q) ||
+    v.student_id.toLowerCase().includes(q)
+  );
+  const filteredLogs = attendanceLogs.filter(l =>
+    !q ||
+    (l.instructor_name || '').toLowerCase().includes(q) ||
+    (l.replacement_name || '').toLowerCase().includes(q) ||
+    (l.instructor_id || '').toLowerCase().includes(q) ||
+    (l.credited_to_id || '').toLowerCase().includes(q) ||
+    (l.session_date || '').includes(q) ||
+    (l.activity_title || '').toLowerCase().includes(q)
   );
 
   return (
@@ -399,7 +420,7 @@ export default function AuditPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <button
               onClick={handleExportCSV}
               style={{ background: 'var(--prodip-navy)', color: 'white', border: 'none', padding: '10px 18px', borderRadius: '8px', fontSize: '13px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
@@ -417,13 +438,13 @@ export default function AuditPage() {
       </div>
 
       {/* THREE REQUIREMENT SUMMARY CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '20px', marginBottom: '24px' }}>
         <div className="card" style={{ padding: '20px' }}>
           <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--prodip-muted)', letterSpacing: '0.5px' }}>REQUIREMENT</span>
           <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--prodip-navy)', margin: '6px 0 4px' }}>
             Milestone Classes
           </div>
-          <span style={{ fontSize: '12px', color: 'var(--prodip-muted)' }}>Configurable per volunteer target (e.g. 20–36 classes)</span>
+          <span style={{ fontSize: '12px', color: 'var(--prodip-muted)' }}>Configurable per volunteer (default 20 approved classes)</span>
         </div>
 
         <div className="card" style={{ padding: '20px' }}>
@@ -439,12 +460,12 @@ export default function AuditPage() {
           <div style={{ fontSize: '20px', fontWeight: 800, color: '#0284c7', margin: '6px 0 4px' }}>
             Ready On Target Completion
           </div>
-          <span style={{ fontSize: '12px', color: 'var(--prodip-muted)' }}>1-click notification sent to volunteer email upon milestone</span>
+          <span style={{ fontSize: '12px', color: 'var(--prodip-muted)' }}>Not built yet — planned</span>
         </div>
       </div>
 
       {/* TAB NAVIGATION: AUDIT VS EXCEL ALL ENTRIES */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
         <button
           onClick={() => setActiveTab('audit')}
           style={{
@@ -487,12 +508,22 @@ export default function AuditPage() {
               Volunteer Class &amp; Hours Audit
             </h3>
             <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '11.5px', fontWeight: 700, padding: '4px 12px', borderRadius: '16px' }}>
-              Sorted by Completion Progress
+              {filteredVolunteers.length} volunteers
             </span>
+          </div>
+          <div style={{ position: 'relative', maxWidth: '360px', marginBottom: '16px' }}>
+            <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search volunteers..."
+              style={{ width: '100%', padding: '9px 10px 9px 32px', border: '1px solid var(--prodip-border)', borderRadius: '8px', fontSize: '13px' }}
+            />
           </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px', minWidth: '850px' }}>
+            <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid var(--prodip-border)', color: '#64748b' }}>
                   <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>STUDENT ID</th>
@@ -502,30 +533,29 @@ export default function AuditPage() {
                   <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>TOTAL VERIFIED HOURS</th>
                   <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>CERTIFICATION STATUS</th>
                   <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>DESIGNATED SCHEDULE</th>
-                  <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', textAlign: 'right' }}>COMPLETION ACTION</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredVolunteers.map((v) => {
                   const approved = v.approved_classes || 0;
-                  const target = v.target_classes || 36;
+                  const target = v.target_classes || 20;
                   const pct = v.completion_pct !== undefined ? v.completion_pct : (target > 0 ? Math.min(100, Math.round((approved / target) * 100)) : 0);
                   const left = v.classes_left !== undefined ? v.classes_left : Math.max(0, target - approved);
                   const schedule = v.designated_display || formatSchedule(v);
 
                   return (
                     <tr key={v.student_id} style={{ borderBottom: '1px solid var(--prodip-border)' }}>
-                      <td style={{ padding: '14px 12px' }}>
+                      <td data-label="Student ID" style={{ padding: '14px 12px' }}>
                         <b>{v.student_id}</b>
                       </td>
-                      <td style={{ padding: '14px 12px' }}>
+                      <td data-label="Volunteer" style={{ padding: '14px 12px' }}>
                         <b style={{ color: 'var(--prodip-navy)', display: 'block' }}>{v.full_name}</b>
-                        <span style={{ fontSize: '11.5px', color: 'var(--prodip-muted)' }}>{v.email || `${v.student_id}@prodip.org`}</span>
+                        <span style={{ fontSize: '11.5px', color: 'var(--prodip-muted)' }}>{v.email || '—'}</span>
                       </td>
-                      <td style={{ padding: '14px 12px' }}>
-                        <span style={{ color: 'var(--prodip-muted)' }}>{v.role || 'Mentor'}</span>
+                      <td data-label="Role" style={{ padding: '14px 12px' }}>
+                        <span style={{ color: 'var(--prodip-muted)' }}>{ROLE_NAMES[v.role_level] || 'Volunteer'}</span>
                       </td>
-                      <td style={{ padding: '14px 12px' }}>
+                      <td data-label="Approved / Target" style={{ padding: '14px 12px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <b>{approved}</b> <span style={{ color: 'var(--prodip-muted)', fontSize: '12px' }}>/ {target}</span>
                         </div>
@@ -533,21 +563,16 @@ export default function AuditPage() {
                           <div style={{ background: '#059669', width: `${pct}%`, height: '100%' }}></div>
                         </div>
                       </td>
-                      <td style={{ padding: '14px 12px' }}>
-                        <b>{v.total_hours || `${(approved * 2.0).toFixed(1)} Hours`}</b>
+                      <td data-label="Verified Time" style={{ padding: '14px 12px' }}>
+                        <b>{v.total_hours || '0 min'}</b>
                       </td>
-                      <td style={{ padding: '14px 12px' }}>
-                        <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '11.5px', fontWeight: 700, padding: '3px 10px', borderRadius: '12px' }}>
+                      <td data-label="Certificate" style={{ padding: '14px 12px' }}>
+                        <span style={{ background: left === 0 ? '#dcfce7' : '#f1f5f9', color: left === 0 ? '#166534' : '#475569', fontSize: '11.5px', fontWeight: 700, padding: '3px 10px', borderRadius: '12px' }}>
                           {left === 0 ? 'Eligible' : `${left} classes left`}
                         </span>
                       </td>
-                      <td style={{ padding: '14px 12px', fontSize: '12.5px' }}>
+                      <td data-label="Schedule" style={{ padding: '14px 12px', fontSize: '12.5px' }}>
                         {schedule}
-                      </td>
-                      <td style={{ padding: '14px 12px', textAlign: 'right' }}>
-                        <a href="/profile" style={{ color: 'var(--prodip-navy)', fontWeight: 700, textDecoration: 'none', fontSize: '13px' }}>
-                          View Streak &gt;
-                        </a>
                       </td>
                     </tr>
                   );
@@ -562,11 +587,11 @@ export default function AuditPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
             <div>
               <h3 style={{ fontSize: '18px', color: 'var(--prodip-navy)', fontWeight: 800 }}>
-                Approved Master Attendance Register (Excel Table View)
+                Master Attendance Register (all statuses)
               </h3>
               <span style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>Complete historical database register of all checked in sessions.</span>
             </div>
-            <div style={{ position: 'relative', width: '280px' }}>
+            <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: '320px' }}>
               <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
               <input
                 type="text"
@@ -579,7 +604,7 @@ export default function AuditPage() {
           </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', minWidth: '850px' }}>
+            <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
                 <tr style={{ background: '#f1f5f9', borderBottom: '2px solid var(--prodip-border)', color: '#475569' }}>
                   <th style={{ padding: '10px 12px' }}>DATE</th>
@@ -589,30 +614,33 @@ export default function AuditPage() {
                   <th style={{ padding: '10px 12px' }}>ACTIVITY</th>
                   <th style={{ padding: '10px 12px' }}>IN-TIME</th>
                   <th style={{ padding: '10px 12px' }}>OUT-TIME</th>
-                  <th style={{ padding: '10px 12px' }}>TOPIC COVERED</th>
+                  <th style={{ padding: '10px 12px' }}>DURATION</th>
                   <th style={{ padding: '10px 12px' }}>STATUS</th>
                 </tr>
               </thead>
               <tbody>
-                {attendanceLogs.length > 0 ? (
-                  attendanceLogs.map((log) => (
+                {filteredLogs.length > 0 ? (
+                  filteredLogs.map((log) => (
                     <tr key={log.id} style={{ borderBottom: '1px solid var(--prodip-border)' }}>
-                      <td style={{ padding: '10px 12px' }}><b>{log.session_date}</b></td>
-                      <td style={{ padding: '10px 12px' }}>{log.day_of_week}</td>
-                      <td style={{ padding: '10px 12px' }}>{log.instructor_id}</td>
-                      <td style={{ padding: '10px 12px' }}><b>{log.instructor_name}</b></td>
-                      <td style={{ padding: '10px 12px' }}>{log.activity_title}</td>
-                      <td style={{ padding: '10px 12px' }}>{log.in_time}</td>
-                      <td style={{ padding: '10px 12px' }}>{log.out_time || '--'}</td>
-                      <td style={{ padding: '10px 12px' }}>{log.topic_covered || 'N/A'}</td>
-                      <td style={{ padding: '10px 12px' }}>
+                      <td data-label="Date" style={{ padding: '10px 12px' }}><b>{log.session_date}</b></td>
+                      <td data-label="Day" style={{ padding: '10px 12px' }}>{log.day_of_week}</td>
+                      <td data-label="Volunteer ID" style={{ padding: '10px 12px' }}>{log.credited_to_id || log.instructor_id}</td>
+                      <td data-label="Volunteer" style={{ padding: '10px 12px' }}>
+                        <b>{log.replacement_name || log.instructor_name}</b>
+                        {log.replacement_name && <div style={{ fontSize: '11px', color: 'var(--prodip-muted)' }}>for {log.instructor_name}</div>}
+                      </td>
+                      <td data-label="Activity" style={{ padding: '10px 12px' }}>{log.activity_title}</td>
+                      <td data-label="In" style={{ padding: '10px 12px' }}>{formatClock(log.in_time)}</td>
+                      <td data-label="Out" style={{ padding: '10px 12px' }}>{log.out_time ? formatClock(log.out_time) : '--'}</td>
+                      <td data-label="Duration" style={{ padding: '10px 12px' }}>{logDuration(log)}</td>
+                      <td data-label="Status" style={{ padding: '10px 12px' }}>
                         <span style={{
                           padding: '3px 8px',
                           borderRadius: '10px',
                           fontSize: '11px',
                           fontWeight: 700,
-                          background: log.status === 'Approved' ? '#dcfce7' : '#fef9c3',
-                          color: log.status === 'Approved' ? '#166534' : '#854d0e'
+                          background: log.status === 'Approved' ? '#dcfce7' : log.status === 'Rejected' ? '#fee2e2' : '#fef9c3',
+                          color: log.status === 'Approved' ? '#166534' : log.status === 'Rejected' ? '#991b1b' : '#854d0e'
                         }}>
                           {log.status}
                         </span>

@@ -8,22 +8,17 @@ import { BookOpen, Search, CheckCircle } from 'lucide-react';
 export default function ActivitiesPage() {
   const [activities, setActivities] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     fetchActivities();
   }, []);
 
   const fetchActivities = async () => {
-    const { data } = await supabase.from('activities').select('*').order('title');
-    if (data && data.length > 0) {
-      setActivities(data);
-    } else {
-      setActivities([
-        { id: 1, title: 'Mentorship & Academic Coaching', category: 'Academic', status: 'Active', notes: 'Weekly subject coaching for under-resourced school children.' },
-        { id: 2, title: 'Medical & Hygiene Awareness', category: 'Health', status: 'Active', notes: 'Basic health education and personal hygiene workshops.' },
-        { id: 3, title: 'Extracurricular & Sports Event', category: 'Co-Curricular', status: 'Active', notes: 'Art competitions, sports, and cultural development.' }
-      ]);
-    }
+    // Only Active activities are public; the old code also invented three fake ones when the table was empty.
+    const { data } = await supabase.from('activities').select('*').eq('status', 'Active').order('title');
+    setActivities(data || []);
+    setLoaded(true);
   };
 
   const filtered = activities.filter(a =>
@@ -45,7 +40,7 @@ export default function ActivitiesPage() {
           </span>
         </div>
 
-        <div style={{ position: 'relative', width: '260px' }}>
+        <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: '320px' }}>
           <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
           <input
             type="text"
@@ -57,7 +52,7 @@ export default function ActivitiesPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: '20px' }}>
         {filtered.map((act) => (
           <div key={act.id} className="card" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -79,6 +74,12 @@ export default function ActivitiesPage() {
           </div>
         ))}
       </div>
+
+      {loaded && filtered.length === 0 && (
+        <div className="card" style={{ textAlign: 'center', color: 'var(--prodip-muted)' }}>
+          {activities.length === 0 ? 'No activities have been published yet.' : 'No activity matches your search.'}
+        </div>
+      )}
     </section>
   );
 }

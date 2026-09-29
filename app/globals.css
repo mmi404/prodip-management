@@ -525,3 +525,242 @@ svg {
         padding: 20px 16px 28px;
     }
 }
+
+/* ─── SHARED CONTROLS ─── */
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.btn-row {
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 800;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 38px;
+    white-space: nowrap;
+}
+
+.btn-primary-action {
+    color: white;
+    border: none;
+    padding: 11px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 46px;
+}
+
+.row-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.panel-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+    gap: 12px;
+}
+
+.panel-grid .btn-panel-link {
+    min-height: 54px;
+    font-size: 15px;
+    border-radius: 14px;
+    justify-content: flex-start;
+    padding: 12px 18px;
+    box-shadow: 0 4px 14px rgba(20, 30, 54, 0.12);
+}
+
+/* ─── TOASTS (replace blocking alert()) ─── */
+.toast-host {
+    position: fixed;
+    top: 78px;
+    right: 16px;
+    left: 16px;
+    z-index: 20000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.toast {
+    pointer-events: auto;
+    max-width: 460px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: white;
+    box-shadow: 0 10px 28px rgba(20, 30, 54, 0.28);
+    animation: toastIn 0.2s ease-out;
+}
+
+.toast-success { background: #059669; }
+.toast-error { background: #b91c1c; }
+.toast-info { background: var(--prodip-navy); }
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── MOBILE BOTTOM TAB BAR ─── */
+.mobile-tabbar {
+    display: none;
+}
+
+.landing-one-tap-card .circular-tap-btn:disabled {
+    animation: none;
+}
+
+/* ─── PHONE LAYOUT ─── */
+@media (max-width: 860px) {
+    body {
+        padding-bottom: 72px; /* room for the bottom tab bar */
+    }
+
+    /* Inputs at 16px stop iOS Safari from zooming the page on focus */
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+
+    .toast-host {
+        top: auto;
+        bottom: 84px;
+        align-items: stretch;
+    }
+
+    .toast {
+        max-width: none;
+    }
+
+    .mobile-tabbar {
+        display: flex;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1100;
+        background: white;
+        border-top: 1px solid var(--prodip-border);
+        box-shadow: 0 -4px 18px rgba(20, 30, 54, 0.1);
+        padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    }
+
+    .mobile-tab {
+        flex: 1 1 0;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 6px 2px;
+        border: none;
+        background: transparent;
+        color: var(--prodip-muted);
+        font-size: 10.5px;
+        font-weight: 700;
+        text-decoration: none;
+        border-radius: 10px;
+        cursor: pointer;
+    }
+
+    .mobile-tab span {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .mobile-tab.active {
+        color: var(--prodip-navy);
+        background: #eef2fb;
+    }
+
+    .quick-switcher-bar {
+        display: none; /* the bottom tab bar replaces it on phones */
+    }
+
+    /* Tables become stacked cards: each cell shows its own column label */
+    table.rtable,
+    table.rtable tbody,
+    table.rtable tr,
+    table.rtable td {
+        display: block;
+        width: 100%;
+    }
+
+    table.rtable thead {
+        display: none;
+    }
+
+    table.rtable {
+        min-width: 0 !important;
+    }
+
+    table.rtable tr {
+        border: 1px solid var(--prodip-border) !important;
+        border-radius: 14px;
+        margin-bottom: 12px;
+        padding: 6px 4px;
+        background: #fff;
+    }
+
+    table.rtable td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 10px !important;
+        text-align: right !important;
+        border: none !important;
+    }
+
+    table.rtable td::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        font-size: 11px;
+        font-weight: 800;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        text-align: left;
+    }
+
+    table.rtable td[colspan] {
+        display: block;
+        text-align: center !important;
+    }
+
+    table.rtable td[colspan]::before {
+        content: none;
+    }
+
+    table.rtable td .row-actions {
+        justify-content: flex-end;
+    }
+
+    .btn-row {
+        min-height: 42px;
+    }
+
+    .ribbon-title span {
+        display: none;
+    }
+}

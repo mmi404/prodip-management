@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { fetchCurrentVolunteer } from '@/lib/volunteer';
 import { User, Shield, ShieldCheck } from 'lucide-react';
 
 export default function QuickSwitcher() {
@@ -17,8 +18,8 @@ export default function QuickSwitcher() {
   const checkRole = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-      const { data: vol } = await supabase.from('volunteers').select('role_level').eq('auth_user_id', session.user.id).single();
-      if (vol) setRoleLevel(vol.role_level || 1);
+      const vol = await fetchCurrentVolunteer(session);
+      setRoleLevel(vol?.role_level || 1);
     }
   };
 

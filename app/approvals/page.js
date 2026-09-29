@@ -5,9 +5,14 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import QuickSwitcher from '@/components/QuickSwitcher';
 import AuthGate from '@/components/AuthGate';
+import { useToast } from '@/components/Toast';
+import { fetchCurrentVolunteer } from '@/lib/volunteer';
+import { formatClock, logDuration } from '@/lib/time';
 import { Shield, Check, X, Users, Search, Edit3, PlusCircle, UserPlus, Upload, Download, FileSpreadsheet } from 'lucide-react';
 
 export default function ApprovalsPage() {
+  const { toast, ToastHost } = useToast();
+  const [roleLevel, setRoleLevel] = useState(0);
   const [activeTab, setActiveTab] = useState('queue'); // 'queue' | 'mentors'
   const [filterStatus, setFilterStatus] = useState('Pending'); // 'Pending' | 'Approved' | 'Rejected' | 'All'
   const [allLogs, setAllLogs] = useState([]);
@@ -28,7 +33,7 @@ export default function ApprovalsPage() {
     department: 'CSE',
     batch: "'21",
     role_level: 2,
-    target_classes: 36,
+    target_classes: 20,
     designated_days: ['Sunday', 'Tuesday', 'Friday']
   });
 
@@ -46,7 +51,8 @@ export default function ApprovalsPage() {
   const initApprovals = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-      const { data: vol } = await supabase.from('volunteers').select('*').eq('auth_user_id', session.user.id).single();
+      const vol = await fetchCurrentVolunteer(session);
+      setRoleLevel(vol?.role_level || 0);
     }
     fetchLogs();
     fetchVolunteers();
@@ -62,25 +68,34 @@ export default function ApprovalsPage() {
     setVolunteers(data || []);
   };
 
-  const handleApprove = async (logId) => {
-    const updated = allLogs.map(l => l.id === logId ? { ...l, status: 'Approved' } : l);
-    setAllLogs(updated);
-    await supabase.from('attendance_logs').update({ status: 'Approved' }).eq('id', logId);
-    alert('✅ Session log approved and credited to volunteer streak!');
-  };
+  // A Supabase update that RLS denies returns NO error and zero rows, so we ask for the
+  // updated row back (.select) and treat "nothing came back" as a failure instead of
+  // pretending the approval worked.
+  const decide = async (log, status) => {
+    if (status === 'Approved' && !log.out_time) {
+      return toast('This session has no out-time yet, so it cannot be approved. Ask the coordinator to fix it.', 'error');
+    }
+    const { data, error } = await supabase
+      .from('attendance_logs')
+      .update({ status })
+      .eq('id', log.id)
+      .select('id');
 
-  const handleReject = async (logId) => {
-    const updated = allLogs.map(l => l.id === logId ? { ...l, status: 'Rejected' } : l);
-    setAllLogs(updated);
-    await supabase.from('attendance_logs').update({ status: 'Rejected' }).eq('id', logId);
-    alert('❌ Session log rejected.');
+    if (error || !data || data.length === 0) {
+      return toast(
+        error ? `Failed: ${error.message}` : 'Not allowed: your role cannot approve or reject attendance. Check that the Supabase migration was run.',
+        'error',
+        7000
+      );
+    }
+    setAllLogs((prev) => prev.map((l) => (l.id === log.id ? { ...l, status } : l)));
+    toast(status === 'Approved' ? 'Approved and credited.' : 'Rejected.', status === 'Approved' ? 'success' : 'info');
   };
 
   // Manual Volunteer Add
   const handleManualAddVolunteer = async () => {
     if (!newVolunteer.student_id.trim() || !newVolunteer.full_name.trim()) {
-      alert('Student ID and Full Name are required.');
-      return;
+      return toast('Student ID and Full Name are required.', 'error');
     }
 
     const payload = {
@@ -92,12 +107,11 @@ export default function ApprovalsPage() {
 
     const { error } = await supabase.from('volunteers').insert([payload]);
     if (error) {
-      alert('Notice: ' + error.message + ' (Added to active session)');
-    } else {
-      alert(`✅ Volunteer ${payload.full_name} (${payload.student_id}) added successfully!`);
+      return toast(`Could not add volunteer: ${error.message}`, 'error', 7000);
     }
 
-    setVolunteers([payload, ...volunteers]);
+    toast(`Added ${payload.full_name} (${payload.student_id}).`, 'success');
+    fetchVolunteers();
     setIsAddVolunteerModalOpen(false);
     setNewVolunteer({
       student_id: '',
@@ -106,7 +120,7 @@ export default function ApprovalsPage() {
       department: 'CSE',
       batch: "'21",
       role_level: 2,
-      target_classes: 36,
+      target_classes: 20,
       designated_days: ['Sunday', 'Tuesday', 'Friday']
     });
   };
@@ -122,7 +136,7 @@ export default function ApprovalsPage() {
       const text = evt.target.result;
       const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
       if (lines.length < 2) {
-        alert('CSV file appears empty or has only a header row.');
+        toast('CSV file appears empty or has only a header row.', 'error');
         return;
       }
 
@@ -137,7 +151,7 @@ export default function ApprovalsPage() {
         const department = row[3] || 'General';
         const batch = row[4] || '';
         const role_level = parseInt(row[5]) || 2;
-        const target_classes = parseInt(row[6]) || 36;
+        const target_classes = parseInt(row[6]) || 20;
         const daysStr = row[7] || 'Sunday;Tuesday;Friday';
         const designated_days = daysStr.split(/[;:]/).map(d => d.trim()).filter(Boolean);
 
@@ -179,26 +193,18 @@ export default function ApprovalsPage() {
   // Import Parsed CSV into Database
   const handleImportBatch = async () => {
     if (csvPreview.length === 0) {
-      alert('Please select a valid CSV file with volunteer rows.');
-      return;
+      return toast('Please select a valid CSV file with volunteer rows.', 'error');
     }
     setIsUploadingBatch(true);
     const { error } = await supabase.from('volunteers').upsert(csvPreview, { onConflict: 'student_id' });
     setIsUploadingBatch(false);
 
     if (error) {
-      alert('Notice: ' + error.message + ' (Imported to current session)');
-    } else {
-      alert(`✅ Successfully imported ${csvPreview.length} volunteers into database!`);
+      return toast(`Import failed: ${error.message}`, 'error', 7000);
     }
 
-    setVolunteers(prev => {
-      const map = new Map();
-      prev.forEach(v => map.set(v.student_id, v));
-      csvPreview.forEach(v => map.set(v.student_id, v));
-      return Array.from(map.values());
-    });
-
+    toast(`Imported ${csvPreview.length} volunteers.`, 'success');
+    fetchVolunteers();
     setIsBatchUploadModalOpen(false);
     setCsvPreview([]);
     setCsvFileName('');
@@ -207,21 +213,20 @@ export default function ApprovalsPage() {
   // Save Edited Mentor
   const handleSaveEditMentor = async () => {
     if (!editingMentor) return;
-    const { error } = await supabase.from('volunteers').update({
+    const { data, error } = await supabase.from('volunteers').update({
       full_name: editingMentor.full_name,
       email: editingMentor.email,
       role_level: parseInt(editingMentor.role_level) || 2,
-      target_classes: parseInt(editingMentor.target_classes) || 36,
+      target_classes: parseInt(editingMentor.target_classes) || 20,
       designated_days: editingMentor.designated_days
-    }).eq('student_id', editingMentor.student_id);
+    }).eq('student_id', editingMentor.student_id).select('student_id');
 
-    if (error) {
-      alert('Notice: ' + error.message + ' (Updated in active session)');
-    } else {
-      alert(`✅ Volunteer ${editingMentor.full_name} updated successfully!`);
+    if (error || !data || data.length === 0) {
+      return toast(error ? `Update failed: ${error.message}` : 'Not allowed: only the Master Admin can edit volunteers.', 'error', 7000);
     }
 
-    setVolunteers(volunteers.map(v => v.student_id === editingMentor.student_id ? editingMentor : v));
+    toast(`Updated ${editingMentor.full_name}.`, 'success');
+    fetchVolunteers();
     setIsEditMentorModalOpen(false);
     setEditingMentor(null);
   };
@@ -242,6 +247,7 @@ export default function ApprovalsPage() {
     <AuthGate minRoleLevel={4} requiredRoleName="Senior Coordinator">
       <section>
         <QuickSwitcher />
+        <ToastHost />
 
       {/* TOP HEADER & TAB BAR */}
       <div className="card" style={{ marginBottom: '24px', padding: '20px 24px', background: '#fff' }}>
@@ -258,7 +264,7 @@ export default function ApprovalsPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px' }}>
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px', flexWrap: 'wrap' }}>
             {['Pending', 'Approved', 'Rejected', 'All'].map((status) => (
               <button
                 key={status}
@@ -282,7 +288,7 @@ export default function ApprovalsPage() {
         </div>
 
         {/* SECONDARY NAVIGATION TABS */}
-        <div style={{ display: 'flex', gap: '12px', marginTop: '20px', borderTop: '1px solid var(--prodip-border)', paddingTop: '14px' }}>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '20px', borderTop: '1px solid var(--prodip-border)', paddingTop: '14px', flexWrap: 'wrap' }}>
           <button
             onClick={() => setActiveTab('queue')}
             style={{
@@ -327,7 +333,7 @@ export default function ApprovalsPage() {
           </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px', minWidth: '800px' }}>
+            <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid var(--prodip-border)', color: '#64748b' }}>
                   <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>SESSION DATE</th>
@@ -344,23 +350,23 @@ export default function ApprovalsPage() {
                 {filteredLogs.length > 0 ? (
                   filteredLogs.map((log) => (
                     <tr key={log.id} style={{ borderBottom: '1px solid var(--prodip-border)' }}>
-                      <td style={{ padding: '14px 12px' }}>
+                      <td data-label="Date" style={{ padding: '14px 12px' }}>
                         <b>{log.session_date}</b>
                         <span style={{ fontSize: '11.5px', color: 'var(--prodip-muted)', display: 'block' }}>{log.day_of_week}</span>
                       </td>
-                      <td style={{ padding: '14px 12px' }}>
+                      <td data-label="Activity" style={{ padding: '14px 12px' }}>
                         <span style={{ background: '#f3e8ff', color: '#6b21a8', fontSize: '11.5px', fontWeight: 700, padding: '3px 9px', borderRadius: '6px' }}>
                           {log.activity_title}
                         </span>
                       </td>
-                      <td style={{ padding: '14px 12px' }}>
-                        <b>{log.instructor_name}</b>
-                        <span style={{ fontSize: '11.5px', color: 'var(--prodip-muted)', display: 'block' }}>ID: {log.instructor_id}</span>
+                      <td data-label="Mentor" style={{ padding: '14px 12px' }}>
+                        <b>{log.replacement_name || log.instructor_name}</b>
+                        <span style={{ fontSize: '11.5px', color: 'var(--prodip-muted)', display: 'block' }}>ID: {log.credited_to_id || log.instructor_id}</span>
                       </td>
-                      <td style={{ padding: '14px 12px' }}>
+                      <td data-label="Type" style={{ padding: '14px 12px' }}>
                         {log.replacement_name ? (
                           <span style={{ background: '#f3e8ff', color: '#6b21a8', fontSize: '11.5px', fontWeight: 700, padding: '4px 10px', borderRadius: '12px' }}>
-                            🔀 Substituted by {log.replacement_name}
+                            🔀 Covering for {log.instructor_name}
                           </span>
                         ) : (
                           <span style={{ background: '#dcfce7', color: '#166534', fontSize: '11.5px', fontWeight: 700, padding: '4px 10px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -368,15 +374,15 @@ export default function ApprovalsPage() {
                           </span>
                         )}
                       </td>
-                      <td style={{ padding: '14px 12px' }}>
-                        <div style={{ fontSize: '12px', color: '#475569' }}>In: <b>{log.in_time}</b></div>
-                        <div style={{ fontSize: '12px', color: '#475569' }}>Out: <b>{log.out_time || 'Ongoing'}</b></div>
-                        <b style={{ fontSize: '13px', color: 'var(--prodip-navy)' }}>{log.hours || '2.0 Hours'}</b>
+                      <td data-label="Time" style={{ padding: '14px 12px' }}>
+                        <div style={{ fontSize: '12px', color: '#475569' }}>In: <b>{formatClock(log.in_time)}</b></div>
+                        <div style={{ fontSize: '12px', color: '#475569' }}>Out: <b>{log.out_time ? formatClock(log.out_time) : 'Ongoing'}</b></div>
+                        <b style={{ fontSize: '13px', color: log.out_time ? 'var(--prodip-navy)' : '#b45309' }}>{logDuration(log)}</b>
                       </td>
-                      <td style={{ padding: '14px 12px', color: 'var(--prodip-muted)', fontSize: '12.5px' }}>
+                      <td data-label="Notes" style={{ padding: '14px 12px', color: 'var(--prodip-muted)', fontSize: '12.5px' }}>
                         {log.topic_covered || 'No remarks'}
                       </td>
-                      <td style={{ padding: '14px 12px' }}>
+                      <td data-label="Status" style={{ padding: '14px 12px' }}>
                         <span style={{
                           padding: '4px 10px',
                           borderRadius: '12px',
@@ -388,18 +394,22 @@ export default function ApprovalsPage() {
                           {log.status === 'Pending' ? '⌛ Pending' : log.status}
                         </span>
                       </td>
-                      <td style={{ padding: '14px 12px', textAlign: 'right' }}>
+                      <td data-label="Actions" style={{ padding: '14px 12px', textAlign: 'right' }}>
                         {log.status === 'Pending' ? (
-                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                          <div className="row-actions">
                             <button
-                              onClick={() => handleApprove(log.id)}
-                              style={{ background: '#059669', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                              className="btn-row"
+                              disabled={!log.out_time}
+                              title={!log.out_time ? 'No out-time recorded yet' : ''}
+                              onClick={() => decide(log, 'Approved')}
+                              style={{ background: !log.out_time ? '#94a3b8' : '#059669', color: 'white' }}
                             >
                               <Check size={14} /> Approve
                             </button>
                             <button
-                              onClick={() => handleReject(log.id)}
-                              style={{ background: '#dc2626', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                              className="btn-row"
+                                              onClick={() => decide(log, 'Rejected')}
+                              style={{ background: '#dc2626', color: 'white' }}
                             >
                               <X size={14} /> Reject
                             </button>
@@ -430,7 +440,7 @@ export default function ApprovalsPage() {
               <span style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>Senior Coordinators can add, batch upload, and manage mentor designated days, target classes, and roles.</span>
             </div>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ position: 'relative', width: '220px' }}>
+              <div style={{ position: 'relative', flex: '1 1 200px', minWidth: '160px' }}>
                 <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                 <input
                   type="text"
@@ -456,7 +466,7 @@ export default function ApprovalsPage() {
           </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px', minWidth: '700px' }}>
+            <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--prodip-border)', color: '#475569' }}>
                   <th style={{ padding: '12px' }}>STUDENT ID</th>
@@ -471,23 +481,23 @@ export default function ApprovalsPage() {
               <tbody>
                 {filteredVolunteers.map((v) => (
                   <tr key={v.student_id} style={{ borderBottom: '1px solid var(--prodip-border)' }}>
-                    <td style={{ padding: '12px' }}><b>{v.student_id}</b></td>
-                    <td style={{ padding: '12px' }}>{v.full_name}</td>
-                    <td style={{ padding: '12px' }}>
+                    <td data-label="Student ID" style={{ padding: '12px' }}><b>{v.student_id}</b></td>
+                    <td data-label="Name" style={{ padding: '12px' }}>{v.full_name}</td>
+                    <td data-label="Role" style={{ padding: '12px' }}>
                       <span style={{ background: '#e0e7ff', color: '#3730a3', padding: '3px 9px', borderRadius: '12px', fontSize: '11px', fontWeight: 700 }}>
-                        Level {v.role_level || 2}
+                        Level {v.role_level || 1}
                       </span>
                     </td>
-                    <td style={{ padding: '12px' }}><b>{v.target_classes || 36} Classes</b></td>
-                    <td style={{ padding: '12px' }}>{(v.designated_days || ['Sunday','Tuesday','Friday']).join(', ')}</td>
-                    <td style={{ padding: '12px', fontSize: '12px', color: 'var(--prodip-muted)' }}>{v.email || '—'}</td>
-                    <td style={{ padding: '12px', textAlign: 'right' }}>
+                    <td data-label="Target" style={{ padding: '12px' }}><b>{v.target_classes || 20} Classes</b></td>
+                    <td data-label="Days" style={{ padding: '12px' }}>{(v.designated_days || []).join(', ') || '—'}</td>
+                    <td data-label="Email" style={{ padding: '12px', fontSize: '12px', color: 'var(--prodip-muted)' }}>{v.email || '—'}</td>
+                    <td data-label="Actions" style={{ padding: '12px', textAlign: 'right' }}>
                       <button
                         onClick={() => {
                           setEditingMentor({
                             ...v,
-                            target_classes: v.target_classes || 36,
-                            designated_days: v.designated_days || ['Sunday', 'Tuesday', 'Friday']
+                            target_classes: v.target_classes || 20,
+                            designated_days: v.designated_days || []
                           });
                           setIsEditMentorModalOpen(true);
                         }}
@@ -587,6 +597,7 @@ export default function ApprovalsPage() {
                     <option value={2}>Level 2: Active Volunteer / Mentor</option>
                     <option value={3}>Level 3: Coordinator</option>
                     <option value={4}>Level 4: Senior Coordinator</option>
+                    <option value={5}>Level 5: Assistant Director</option>
                     <option value={6}>Level 6: System Admin</option>
                   </select>
                 </div>
@@ -595,7 +606,7 @@ export default function ApprovalsPage() {
                   <input
                     type="number"
                     value={newVolunteer.target_classes}
-                    onChange={e => setNewVolunteer({ ...newVolunteer, target_classes: parseInt(e.target.value) || 36 })}
+                    onChange={e => setNewVolunteer({ ...newVolunteer, target_classes: parseInt(e.target.value) || 20 })}
                     style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--prodip-border)', borderRadius: '6px', fontSize: '13px' }}
                   />
                 </div>
@@ -789,6 +800,7 @@ export default function ApprovalsPage() {
                     <option value={2}>Level 2: Active Volunteer</option>
                     <option value={3}>Level 3: Coordinator</option>
                     <option value={4}>Level 4: Senior Coordinator</option>
+                    <option value={5}>Level 5: Assistant Director</option>
                     <option value={6}>Level 6: Admin</option>
                   </select>
                 </div>
@@ -796,8 +808,8 @@ export default function ApprovalsPage() {
                   <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Target Classes</label>
                   <input
                     type="number"
-                    value={editingMentor.target_classes || 36}
-                    onChange={e => setEditingMentor({ ...editingMentor, target_classes: parseInt(e.target.value) || 36 })}
+                    value={editingMentor.target_classes || 20}
+                    onChange={e => setEditingMentor({ ...editingMentor, target_classes: parseInt(e.target.value) || 20 })}
                     style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--prodip-border)', borderRadius: '6px', fontSize: '13px' }}
                   />
                 </div>

@@ -2,39 +2,60 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { fetchCurrentVolunteer } from '@/lib/volunteer';
+import { localDateStr } from '@/lib/time';
 import { Bell, Check, X } from 'lucide-react';
 
 export default function SubstituteNotificationBanner() {
   const [pendingReq, setPendingReq] = useState(null);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     checkRequests();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => checkRequests());
+    return () => subscription.unsubscribe();
   }, []);
 
   const checkRequests = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) {
+      setPendingReq(null);
+      return;
+    }
 
-    const { data: vol } = await supabase.from('volunteers').select('student_id').eq('auth_user_id', session.user.id).single();
+    const vol = await fetchCurrentVolunteer(session);
     if (!vol) return;
 
-    const requests = JSON.parse(localStorage.getItem('prodip_substitute_requests') || '[]');
-    const forMe = requests.find(r => r.to_id === vol.student_id && r.status === 'pending');
-    if (forMe) {
-      setPendingReq(forMe);
-    }
+    const { data } = await supabase
+      .from('substitute_requests')
+      .select('*')
+      .eq('to_id', vol.student_id)
+      .eq('status', 'pending')
+      .gte('class_date', localDateStr())
+      .order('class_date', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    setPendingReq(data || null);
   };
 
-  const handleRespond = (accepted) => {
-    if (!pendingReq) return;
-    const requests = JSON.parse(localStorage.getItem('prodip_substitute_requests') || '[]');
-    const req = requests.find(r => r.id === pendingReq.id);
-    if (req) {
-      req.status = accepted ? 'accepted' : 'declined';
-      req.responded_at = new Date().toISOString();
-      localStorage.setItem('prodip_substitute_requests', JSON.stringify(requests));
+  const handleRespond = async (accepted) => {
+    if (!pendingReq || busy) return;
+    setBusy(true);
+    setError('');
+    const { error: err } = await supabase
+      .from('substitute_requests')
+      .update({ status: accepted ? 'accepted' : 'declined', responded_at: new Date().toISOString() })
+      .eq('id', pendingReq.id);
+    setBusy(false);
+
+    if (err) {
+      setError(`Could not save your answer: ${err.message}`);
+      return;
     }
     setPendingReq(null);
+    checkRequests(); // there may be another pending request queued behind this one
   };
 
   if (!pendingReq) return null;
@@ -59,19 +80,22 @@ export default function SubstituteNotificationBanner() {
           <Bell size={16} /> Substitute Request Received
         </b>
         <span>
-          {pendingReq.from_name} ({pendingReq.from_id}) requested you as substitute for {pendingReq.class_date}.
+          {pendingReq.from_name} ({pendingReq.from_id}) asked you to cover the class on <b>{pendingReq.class_date}</b>.
           {pendingReq.note ? ` Note: ${pendingReq.note}` : ''}
         </span>
+        {error && <div style={{ color: '#991b1b', fontWeight: 700, marginTop: '4px' }}>{error}</div>}
       </div>
       <div style={{ display: 'flex', gap: '8px' }}>
         <button
-          style={{ background: '#166534', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+          disabled={busy}
+          style={{ background: '#166534', color: 'white', border: 'none', padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', minHeight: '42px' }}
           onClick={() => handleRespond(true)}
         >
-          <Check size={14} /> Accept &amp; Take Class
+          <Check size={14} /> Accept
         </button>
         <button
-          style={{ background: '#991b1b', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+          disabled={busy}
+          style={{ background: '#991b1b', color: 'white', border: 'none', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', minHeight: '42px' }}
           onClick={() => handleRespond(false)}
         >
           <X size={14} /> Decline

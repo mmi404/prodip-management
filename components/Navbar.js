@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import LoginModal from '@/components/LoginModal';
-import { User, Menu, X, Shield, ShieldCheck, LogIn, LogOut, Award, ChevronDown } from 'lucide-react';
+import { fetchCurrentVolunteer } from '@/lib/volunteer';
+import { User, Menu, X, Shield, ShieldCheck, LogIn, LogOut, Home, CheckSquare, ArrowRightLeft, MoreHorizontal } from 'lucide-react';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,6 +18,10 @@ export default function Navbar() {
   const router = useRouter();
 
   useEffect(() => {
+    setIsOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
     checkUserRole();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
       checkUserRole();
@@ -26,42 +31,16 @@ export default function Navbar() {
 
   const checkUserRole = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      setIsLoggedIn(true);
-      const { data: vol } = await supabase
-        .from('volunteers')
-        .select('*')
-        .eq('auth_user_id', session.user.id)
-        .single();
-
-      if (vol) {
-        setUserRoleLevel(vol.role_level || 1);
-        setActiveVolunteer(vol);
-      } else {
-        const { data: volByEmail } = await supabase
-          .from('volunteers')
-          .select('*')
-          .eq('email', session.user.email)
-          .single();
-
-        if (volByEmail) {
-          setUserRoleLevel(volByEmail.role_level || 1);
-          setActiveVolunteer(volByEmail);
-        } else {
-          setUserRoleLevel(1);
-          setActiveVolunteer({
-            student_id: session.user.user_metadata?.student_id || session.user.email?.split('@')[0] || 'VOLUNTEER',
-            full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Volunteer',
-            email: session.user.email,
-            role_level: 1
-          });
-        }
-      }
-    } else {
+    if (!session) {
       setIsLoggedIn(false);
       setUserRoleLevel(0);
       setActiveVolunteer(null);
+      return;
     }
+    setIsLoggedIn(true);
+    const vol = await fetchCurrentVolunteer(session);
+    setUserRoleLevel(vol.role_level || 1);
+    setActiveVolunteer(vol);
   };
 
   const handleSignOut = async () => {
@@ -83,6 +62,18 @@ export default function Navbar() {
     if (level >= 3) return { label: 'Coord', bg: '#e0e7ff', color: '#3730a3' };
     return { label: 'Mentor', bg: '#dcfce7', color: '#166534' };
   };
+
+  // Bottom tabs by role (max 4 + "More")
+  const tabs = [
+    { href: '/', label: 'Home', icon: <Home size={20} /> },
+    { href: '/profile', label: 'Dashboard', icon: <User size={20} /> },
+    ...(userRoleLevel >= 3 ? [{ href: '/coordinator', label: 'Sheet', icon: <Shield size={20} /> }] : [{ href: '/substitute', label: 'Substitute', icon: <ArrowRightLeft size={20} /> }]),
+    ...(userRoleLevel >= 6
+      ? [{ href: '/admin', label: 'Admin', icon: <ShieldCheck size={20} /> }]
+      : userRoleLevel >= 4
+        ? [{ href: '/approvals', label: 'Approvals', icon: <CheckSquare size={20} /> }]
+        : [])
+  ];
 
   return (
     <>
@@ -126,6 +117,16 @@ export default function Navbar() {
               onClick={closeMenu}
             >
               Mentor Dashboard
+            </Link>
+          )}
+
+          {isLoggedIn && (
+            <Link
+              href="/substitute"
+              className={`ribbon-link ${pathname === '/substitute' ? 'active-tab' : ''}`}
+              onClick={closeMenu}
+            >
+              Substitute
             </Link>
           )}
 
@@ -265,6 +266,22 @@ export default function Navbar() {
           )}
         </nav>
       </header>
+
+      {/* MOBILE BOTTOM TAB BAR — the main destinations are always one tap away on a phone */}
+      {isLoggedIn && (
+        <nav className="mobile-tabbar" aria-label="Quick navigation">
+          {tabs.map((t) => (
+            <Link key={t.href} href={t.href} className={`mobile-tab ${pathname === t.href ? 'active' : ''}`}>
+              {t.icon}
+              <span>{t.label}</span>
+            </Link>
+          ))}
+          <button type="button" className={`mobile-tab ${isOpen ? 'active' : ''}`} onClick={() => { setIsOpen(!isOpen); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+            <MoreHorizontal size={20} />
+            <span>More</span>
+          </button>
+        </nav>
+      )}
 
       <LoginModal
         isOpen={isLoginModalOpen}

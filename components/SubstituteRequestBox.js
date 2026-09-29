@@ -2,88 +2,74 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { localDateStr, dayNameOf } from '@/lib/time';
 import { ArrowRightLeft, Send } from 'lucide-react';
 
-export default function SubstituteRequestBox({ activeVolunteer }) {
-  const [designatedDays, setDesignatedDays] = useState([]);
-  const [selectedDay, setSelectedDay] = useState('');
+export default function SubstituteRequestBox({ activeVolunteer, onSent }) {
   const [selectedDate, setSelectedDate] = useState('');
   const [volunteers, setVolunteers] = useState([]);
   const [selectedVolId, setSelectedVolId] = useState('');
   const [note, setNote] = useState('');
-  const [statusMsg, setStatusMsg] = useState(null);
+  const [status, setStatus] = useState(null); // { type: 'ok' | 'err', text }
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (activeVolunteer) {
-      const days = activeVolunteer.designated_days || [];
-      const allWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const availableDays = days.length > 0 ? days : allWeek;
-      setDesignatedDays(availableDays);
-      setSelectedDay(availableDays[0] || '');
-
-      const today = new Date();
-      const y = today.getFullYear(), m = String(today.getMonth() + 1).padStart(2, '0'), d = String(today.getDate()).padStart(2, '0');
-      setSelectedDate(`${y}-${m}-${d}`);
-
+      setSelectedDate(localDateStr());
       fetchVolunteers();
     }
   }, [activeVolunteer]);
 
+  // Mentors can't read the full volunteers table (RLS), so use the name-only directory view.
   const fetchVolunteers = async () => {
-    const { data } = await supabase
-      .from('volunteers')
-      .select('*')
+    let { data, error } = await supabase
+      .from('volunteer_directory')
+      .select('student_id, full_name, department')
       .neq('student_id', activeVolunteer.student_id)
       .order('full_name');
 
-    if (data) {
-      setVolunteers(data);
-      if (data.length > 0) setSelectedVolId(data[0].student_id);
+    if (error) {
+      ({ data } = await supabase
+        .from('volunteers')
+        .select('student_id, full_name, department')
+        .neq('student_id', activeVolunteer.student_id)
+        .order('full_name'));
     }
+
+    setVolunteers(data || []);
+    if (data && data.length > 0) setSelectedVolId(data[0].student_id);
   };
 
-  const handleSendRequest = () => {
-    if (!selectedDate) {
-      alert('Please select the class session date.');
+  const handleSendRequest = async () => {
+    setStatus(null);
+    if (!selectedDate) return setStatus({ type: 'err', text: 'Please select the class date.' });
+    if (selectedDate < localDateStr()) return setStatus({ type: 'err', text: 'The class date cannot be in the past.' });
+    if (!selectedVolId) return setStatus({ type: 'err', text: 'Please choose a substitute volunteer.' });
+
+    const subVol = volunteers.find((v) => v.student_id === selectedVolId);
+
+    setSending(true);
+    const { error } = await supabase.from('substitute_requests').insert([
+      {
+        from_id: activeVolunteer.student_id,
+        from_name: activeVolunteer.full_name,
+        to_id: selectedVolId,
+        to_name: subVol ? subVol.full_name : selectedVolId,
+        class_day: dayNameOf(selectedDate),
+        class_date: selectedDate,
+        note: note.trim() || null
+      }
+    ]);
+    setSending(false);
+
+    if (error) {
+      setStatus({ type: 'err', text: `Request not sent: ${error.message}` });
       return;
     }
-    if (!selectedVolId) {
-      alert('Please select a substitute volunteer from the list.');
-      return;
-    }
 
-    const subVol = volunteers.find(v => v.student_id === selectedVolId);
-    const subName = subVol ? subVol.full_name : selectedVolId;
-
-    const reqPayload = {
-      id: 'subreq_' + Date.now(),
-      from_id: activeVolunteer.student_id,
-      from_name: activeVolunteer.full_name,
-      to_id: selectedVolId,
-      to_name: subName,
-      class_day: selectedDay,
-      class_date: selectedDate,
-      note: note.trim(),
-      status: 'pending',
-      created_at: new Date().toISOString()
-    };
-
-    const existingRequests = JSON.parse(localStorage.getItem('prodip_substitute_requests') || '[]');
-    existingRequests.push(reqPayload);
-    localStorage.setItem('prodip_substitute_requests', JSON.stringify(existingRequests));
-
-    if ('Notification' in window && Notification.permission === 'granted') {
-      try {
-        new Notification('Substitute Request Sent', {
-          body: `Your request for ${selectedDate} was sent to ${subName}.`,
-          icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
-        });
-      } catch (e) {}
-    }
-
-    setStatusMsg(`✅ Substitute request sent to ${subName}!`);
+    setStatus({ type: 'ok', text: `Request sent to ${subVol ? subVol.full_name : selectedVolId}.` });
     setNote('');
-    setTimeout(() => setStatusMsg(null), 3500);
+    if (onSent) onSent();
   };
 
   return (
@@ -99,37 +85,26 @@ export default function SubstituteRequestBox({ activeVolunteer }) {
       </div>
 
       <p style={{ fontSize: '13px', color: 'var(--prodip-muted)', marginBottom: '16px' }}>
-        Need someone to cover your class? Select your designated day, choose an available volunteer, and send a request.
+        Need someone to cover your class? Pick the date, choose a volunteer, and send a request. They accept it from their own device.
       </p>
 
-      {statusMsg && (
-        <div style={{ background: '#dcfce7', color: '#166534', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, marginBottom: '14px' }}>
-          {statusMsg}
+      {status && (
+        <div style={{ background: status.type === 'ok' ? '#dcfce7' : '#fee2e2', color: status.type === 'ok' ? '#166534' : '#991b1b', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, marginBottom: '14px' }}>
+          {status.text}
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '14px' }}>
-        <div>
-          <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Select Designated Day</label>
-          <select
-            value={selectedDay}
-            onChange={(e) => setSelectedDay(e.target.value)}
-            style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--prodip-border)', borderRadius: '8px', fontSize: '13.5px', background: '#fff' }}
-          >
-            {designatedDays.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Class Session Date</label>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            style={{ width: '100%', padding: '9px 11px', border: '1px solid var(--prodip-border)', borderRadius: '8px', fontSize: '13.5px', background: '#fff' }}
-          />
-        </div>
+      <div style={{ marginBottom: '14px' }}>
+        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
+          Class Date {selectedDate ? `(${dayNameOf(selectedDate)})` : ''}
+        </label>
+        <input
+          type="date"
+          value={selectedDate}
+          min={localDateStr()}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--prodip-border)', borderRadius: '8px', fontSize: '14px', background: '#fff' }}
+        />
       </div>
 
       <div style={{ marginBottom: '14px' }}>
@@ -137,7 +112,7 @@ export default function SubstituteRequestBox({ activeVolunteer }) {
         <select
           value={selectedVolId}
           onChange={(e) => setSelectedVolId(e.target.value)}
-          style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--prodip-border)', borderRadius: '8px', fontSize: '13.5px', background: '#fff' }}
+          style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--prodip-border)', borderRadius: '8px', fontSize: '14px', background: '#fff' }}
         >
           {volunteers.map((v) => (
             <option key={v.student_id} value={v.student_id}>
@@ -176,9 +151,10 @@ export default function SubstituteRequestBox({ activeVolunteer }) {
           minHeight: '46px'
         }}
         onClick={handleSendRequest}
+        disabled={sending}
       >
         <Send size={15} />
-        Send Substitute Request
+        {sending ? 'Sending...' : 'Send Substitute Request'}
       </button>
     </div>
   );

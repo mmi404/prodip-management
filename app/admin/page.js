@@ -6,10 +6,14 @@ import { supabase } from '@/lib/supabaseClient';
 import { CUET_DEPARTMENTS } from '@/lib/cuetDepartments';
 import QuickSwitcher from '@/components/QuickSwitcher';
 import AuthGate from '@/components/AuthGate';
+import { useToast } from '@/components/Toast';
+import { fetchCurrentVolunteer } from '@/lib/volunteer';
+import { formatClock, logDuration } from '@/lib/time';
 import { ShieldCheck, Check, X, Users, BookOpen, UserPlus, Upload, Download, FileSpreadsheet, Search, Trash2 } from 'lucide-react';
 
 export default function AdminPage() {
-  const [activeVolunteer, setActiveVolunteer] = useState({ student_id: '2101103', full_name: 'Master Admin', role_level: 6 });
+  const { toast, ToastHost } = useToast();
+  const [activeVolunteer, setActiveVolunteer] = useState(null);
   const [pendingLogs, setPendingLogs] = useState([]);
   const [volunteers, setVolunteers] = useState([]);
   const [activities, setActivities] = useState([]);
@@ -27,7 +31,7 @@ export default function AdminPage() {
     department: 'CSE',
     batch: "'21",
     role_level: 2,
-    target_classes: 36,
+    target_classes: 20,
     designated_days: ['Sunday', 'Tuesday', 'Friday']
   });
 
@@ -45,7 +49,7 @@ export default function AdminPage() {
   const initAdmin = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-      const { data: vol } = await supabase.from('volunteers').select('*').eq('auth_user_id', session.user.id).single();
+      const vol = await fetchCurrentVolunteer(session);
       if (vol) setActiveVolunteer(vol);
     }
 
@@ -69,27 +73,27 @@ export default function AdminPage() {
     if (data) setActivities(data);
   };
 
-  const handleApproveLog = async (id) => {
-    const { error } = await supabase.from('attendance_logs').update({ status: 'Approved' }).eq('id', id);
-    if (!error) {
-      alert('✅ Attendance log approved!');
-      fetchPendingLogs();
+  // RLS-denied updates return no error but zero rows, so ask for the row back and verify.
+  const decideLog = async (log, status) => {
+    if (status === 'Approved' && !log.out_time) {
+      return toast('This session has no out-time yet, so it cannot be approved.', 'error');
     }
-  };
-
-  const handleRejectLog = async (id) => {
-    const { error } = await supabase.from('attendance_logs').update({ status: 'Rejected' }).eq('id', id);
-    if (!error) {
-      alert('❌ Attendance log rejected.');
-      fetchPendingLogs();
+    const { data, error } = await supabase
+      .from('attendance_logs')
+      .update({ status })
+      .eq('id', log.id)
+      .select('id');
+    if (error || !data || data.length === 0) {
+      return toast(error ? `Failed: ${error.message}` : 'Not allowed: only the Master Admin can approve or reject.', 'error', 7000);
     }
+    toast(status === 'Approved' ? 'Attendance approved.' : 'Attendance rejected.', status === 'Approved' ? 'success' : 'info');
+    fetchPendingLogs();
   };
 
   // Manual Volunteer Add
   const handleManualAddVolunteer = async () => {
     if (!newVolunteer.student_id.trim() || !newVolunteer.full_name.trim()) {
-      alert('Student ID and Full Name are required.');
-      return;
+      return toast('Student ID and Full Name are required.', 'error');
     }
 
     const payload = {
@@ -101,12 +105,11 @@ export default function AdminPage() {
 
     const { error } = await supabase.from('volunteers').insert([payload]);
     if (error) {
-      alert('Notice: ' + error.message + ' (Added to active session)');
-    } else {
-      alert(`✅ Volunteer ${payload.full_name} (${payload.student_id}) added successfully!`);
+      return toast(`Could not add volunteer: ${error.message}`, 'error', 7000);
     }
 
-    setVolunteers([payload, ...volunteers]);
+    toast(`Added ${payload.full_name} (${payload.student_id}).`, 'success');
+    fetchVolunteers();
     setIsAddVolunteerModalOpen(false);
     setNewVolunteer({
       student_id: '',
@@ -115,7 +118,7 @@ export default function AdminPage() {
       department: 'CSE',
       batch: "'21",
       role_level: 2,
-      target_classes: 36,
+      target_classes: 20,
       designated_days: ['Sunday', 'Tuesday', 'Friday']
     });
   };
@@ -131,7 +134,7 @@ export default function AdminPage() {
       const text = evt.target.result;
       const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
       if (lines.length < 2) {
-        alert('CSV file appears empty or has only a header row.');
+        toast('CSV file appears empty or has only a header row.', 'error');
         return;
       }
 
@@ -146,7 +149,7 @@ export default function AdminPage() {
         const department = row[3] || 'General';
         const batch = row[4] || '';
         const role_level = parseInt(row[5]) || 2;
-        const target_classes = parseInt(row[6]) || 36;
+        const target_classes = parseInt(row[6]) || 20;
         const daysStr = row[7] || 'Sunday;Tuesday;Friday';
         const designated_days = daysStr.split(/[;:]/).map(d => d.trim()).filter(Boolean);
 
@@ -173,7 +176,7 @@ export default function AdminPage() {
   const downloadCSVTemplate = () => {
     const csvContent = "data:text/csv;charset=utf-8," + 
       "Student ID,Full Name,Email,Department,Batch,Role Level,Target Classes,Designated Days\n" +
-      "2101104,Fahim Muntakim,u2101104@student.cuet.ac.bd,CSE,'21,2,36,Sunday;Tuesday;Friday\n" +
+      "2101104,Fahim Muntakim,u2101104@student.cuet.ac.bd,CSE,'21,2,20,Sunday;Tuesday;Friday\n" +
       "2101105,Sumaiya Akter,u2101105@student.cuet.ac.bd,EEE,'21,2,30,Friday\n" +
       "2401035,Rahim Khan,u2401035@student.cuet.ac.bd,Civil,'24,1,20,Tuesday;Friday\n";
     const encodedUri = encodeURI(csvContent);
@@ -188,36 +191,31 @@ export default function AdminPage() {
   // Import Parsed CSV into Database
   const handleImportBatch = async () => {
     if (csvPreview.length === 0) {
-      alert('Please select a valid CSV file with volunteer rows.');
-      return;
+      return toast('Please select a valid CSV file with volunteer rows.', 'error');
     }
     setIsUploadingBatch(true);
     const { error } = await supabase.from('volunteers').upsert(csvPreview, { onConflict: 'student_id' });
     setIsUploadingBatch(false);
 
     if (error) {
-      alert('Notice: ' + error.message + ' (Imported to active session)');
-    } else {
-      alert(`✅ Successfully imported ${csvPreview.length} volunteers into database!`);
+      return toast(`Import failed: ${error.message}`, 'error', 7000);
     }
 
-    setVolunteers(prev => {
-      const map = new Map();
-      prev.forEach(v => map.set(v.student_id, v));
-      csvPreview.forEach(v => map.set(v.student_id, v));
-      return Array.from(map.values());
-    });
-
+    toast(`Imported ${csvPreview.length} volunteers.`, 'success');
+    fetchVolunteers();
     setIsBatchUploadModalOpen(false);
     setCsvPreview([]);
     setCsvFileName('');
   };
 
   const handleDeleteVolunteer = async (id, name) => {
-    if (!confirm(`Are you sure you want to remove ${name} from the roster?`)) return;
-    await supabase.from('volunteers').delete().eq('student_id', id);
-    setVolunteers(volunteers.filter(v => v.student_id !== id));
-    alert(`Volunteer ${name} removed.`);
+    if (!confirm(`Remove ${name} from the roster? Their past attendance records are kept.`)) return;
+    const { data, error } = await supabase.from('volunteers').delete().eq('student_id', id).select('student_id');
+    if (error || !data || data.length === 0) {
+      return toast(error ? `Could not remove: ${error.message}` : 'Not allowed to remove this volunteer.', 'error', 7000);
+    }
+    setVolunteers((prev) => prev.filter((v) => v.student_id !== id));
+    toast(`${name} removed.`, 'info');
   };
 
   const filteredVolunteers = volunteers.filter(v =>
@@ -230,6 +228,7 @@ export default function AdminPage() {
     <AuthGate minRoleLevel={6} requiredRoleName="System Administrator">
       <section>
         <QuickSwitcher />
+        <ToastHost />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '24px', paddingBottom: '14px', borderBottom: '2px solid var(--prodip-border)' }}>
         <div>
@@ -253,7 +252,7 @@ export default function AdminPage() {
           </h3>
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px', minWidth: '600px' }}>
+            <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--prodip-border)', color: '#475569' }}>
                   <th style={{ padding: '10px 12px' }}>Date</th>
@@ -268,22 +267,29 @@ export default function AdminPage() {
                 {pendingLogs.length > 0 ? (
                   pendingLogs.map(log => (
                     <tr key={log.id} style={{ borderBottom: '1px solid var(--prodip-border)' }}>
-                      <td style={{ padding: '12px' }}><b>{log.session_date}</b> <span style={{ fontSize: '11px', color: 'var(--prodip-muted)' }}>({log.day_of_week})</span></td>
-                      <td style={{ padding: '12px' }}>{log.instructor_name} <br/><span style={{ fontSize: '11px', color: 'var(--prodip-muted)' }}>ID: {log.instructor_id}</span></td>
-                      <td style={{ padding: '12px' }}>{log.activity_title}</td>
-                      <td style={{ padding: '12px' }}>In: {log.in_time} | Out: {log.out_time || 'Ongoing'}</td>
-                      <td style={{ padding: '12px' }}>{log.credited_to_id}</td>
-                      <td style={{ padding: '12px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                      <td data-label="Date" style={{ padding: '12px' }}><b>{log.session_date}</b> <span style={{ fontSize: '11px', color: 'var(--prodip-muted)' }}>({log.day_of_week})</span></td>
+                      <td data-label="Volunteer" style={{ padding: '12px' }}>{log.instructor_name} <br/><span style={{ fontSize: '11px', color: 'var(--prodip-muted)' }}>ID: {log.instructor_id}</span></td>
+                      <td data-label="Activity" style={{ padding: '12px' }}>{log.activity_title}</td>
+                      <td data-label="Time" style={{ padding: '12px' }}>
+                        {formatClock(log.in_time)} → {log.out_time ? formatClock(log.out_time) : 'Ongoing'}
+                        <div><b>{logDuration(log)}</b></div>
+                      </td>
+                      <td data-label="Credited To" style={{ padding: '12px' }}>{log.credited_to_id}</td>
+                      <td data-label="Actions" style={{ padding: '12px', textAlign: 'right' }}>
+                        <div className="row-actions">
                           <button
-                            style={{ background: 'var(--prodip-olive)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                            onClick={() => handleApproveLog(log.id)}
+                            className="btn-row"
+                            disabled={!log.out_time}
+                            title={!log.out_time ? 'No out-time recorded yet' : ''}
+                            style={{ background: log.out_time ? 'var(--prodip-olive)' : '#94a3b8', color: 'white' }}
+                            onClick={() => decideLog(log, 'Approved')}
                           >
                             <Check size={13} /> Approve
                           </button>
                           <button
-                            style={{ background: 'var(--prodip-crimson)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                            onClick={() => handleRejectLog(log.id)}
+                            className="btn-row"
+                            style={{ background: 'var(--prodip-crimson)', color: 'white' }}
+                            onClick={() => decideLog(log, 'Rejected')}
                           >
                             <X size={13} /> Reject
                           </button>
@@ -316,7 +322,7 @@ export default function AdminPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ position: 'relative', width: '220px' }}>
+              <div style={{ position: 'relative', flex: '1 1 200px', minWidth: '160px' }}>
                 <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                 <input
                   type="text"
@@ -342,7 +348,7 @@ export default function AdminPage() {
           </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px', minWidth: '750px' }}>
+            <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--prodip-border)', color: '#475569' }}>
                   <th style={{ padding: '10px 12px' }}>Student ID</th>
@@ -357,22 +363,22 @@ export default function AdminPage() {
               <tbody>
                 {filteredVolunteers.map(v => (
                   <tr key={v.student_id} style={{ borderBottom: '1px solid var(--prodip-border)' }}>
-                    <td style={{ padding: '12px' }}><b>{v.student_id}</b></td>
-                    <td style={{ padding: '12px' }}>
+                    <td data-label="Student ID" style={{ padding: '12px' }}><b>{v.student_id}</b></td>
+                    <td data-label="Name" style={{ padding: '12px' }}>
                       <b>{v.full_name}</b>
-                      <div style={{ fontSize: '11px', color: 'var(--prodip-muted)' }}>{v.email || `${v.student_id}@prodip.org`}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--prodip-muted)' }}>{v.email || '—'}</div>
                     </td>
-                    <td style={{ padding: '12px' }}>{v.department || '—'} {v.batch || ''}</td>
-                    <td style={{ padding: '12px' }}>
+                    <td data-label="Dept / Batch" style={{ padding: '12px' }}>{v.department || '—'} {v.batch || ''}</td>
+                    <td data-label="Role" style={{ padding: '12px' }}>
                       <span style={{ background: '#e0e7ff', color: '#3730a3', padding: '3px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 700 }}>
-                        Level {v.role_level || 2}
+                        Level {v.role_level || 1}
                       </span>
                     </td>
-                    <td style={{ padding: '12px' }}><b>{v.target_classes || 36}</b></td>
-                    <td style={{ padding: '12px', fontSize: '12px' }}>
-                      {Array.isArray(v.designated_days) ? v.designated_days.join(', ') : (v.designated || 'Sunday, Tuesday, Friday')}
+                    <td data-label="Target" style={{ padding: '12px' }}><b>{v.target_classes || 20}</b></td>
+                    <td data-label="Days" style={{ padding: '12px', fontSize: '12px' }}>
+                      {Array.isArray(v.designated_days) && v.designated_days.length > 0 ? v.designated_days.join(', ') : '—'}
                     </td>
-                    <td style={{ padding: '12px', textAlign: 'right' }}>
+                    <td data-label="Actions" style={{ padding: '12px', textAlign: 'right' }}>
                       <button
                         onClick={() => handleDeleteVolunteer(v.student_id, v.full_name)}
                         style={{ background: '#fee2e2', color: '#991b1b', border: 'none', padding: '5px 10px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
@@ -496,7 +502,7 @@ export default function AdminPage() {
                   <input
                     type="number"
                     value={newVolunteer.target_classes}
-                    onChange={e => setNewVolunteer({ ...newVolunteer, target_classes: parseInt(e.target.value) || 36 })}
+                    onChange={e => setNewVolunteer({ ...newVolunteer, target_classes: parseInt(e.target.value) || 20 })}
                     style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--prodip-border)', borderRadius: '6px', fontSize: '13px' }}
                   />
                 </div>

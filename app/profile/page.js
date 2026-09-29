@@ -7,12 +7,15 @@ import { supabase } from '@/lib/supabaseClient';
 import QuickSwitcher from '@/components/QuickSwitcher';
 import LoginModal from '@/components/LoginModal';
 import AuthGate from '@/components/AuthGate';
+import { fetchCurrentVolunteer } from '@/lib/volunteer';
+import { formatClock, logDuration, sumMinutes, formatMinutes } from '@/lib/time';
 import { User, Award, Calendar, LogOut, Edit3, Shield, ShieldCheck, CheckCircle2, Flame, ArrowRightLeft, Clock } from 'lucide-react';
 
 export default function ProfilePage() {
   const [allVolunteers, setAllVolunteers] = useState([]);
   const [activeVolunteer, setActiveVolunteer] = useState(null);
   const [userRole, setUserRole] = useState({ name: 'Volunteer', level: 1 });
+  const [viewerLevel, setViewerLevel] = useState(1); // the signed-in person's own level (not the profile being viewed)
   const [logs, setLogs] = useState([]);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -29,36 +32,22 @@ export default function ProfilePage() {
 
   const loadSession = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    
-    // Fetch roster list for mentor switcher
-    const { data: volList } = await supabase.from('volunteers').select('*').order('full_name');
-    if (volList) setAllVolunteers(volList);
 
     if (!session) {
       setIsLoginOpen(true);
       return;
     }
 
-    const { data: vol } = await supabase.from('volunteers').select('*').eq('auth_user_id', session.user.id).single();
-    if (vol) {
-      selectMentorProfile(vol);
-    } else {
-      const matched = volList?.find(v => v.email?.toLowerCase() === session.user.email?.toLowerCase());
-      if (matched) {
-        selectMentorProfile(matched);
-      } else {
-        const studentId = session.user.user_metadata?.student_id || session.user.email?.split('@')[0] || 'VOLUNTEER';
-        const fullName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Volunteer';
-        selectMentorProfile({
-          student_id: studentId,
-          full_name: fullName,
-          email: session.user.email,
-          target_classes: 20,
-          designated_days: ['Sunday', 'Tuesday', 'Friday'],
-          role_level: 1
-        });
-      }
+    const me = await fetchCurrentVolunteer(session);
+    setViewerLevel(me.role_level || 1);
+
+    // Only coordinators+ may read the whole roster (RLS), so only they get the mentor switcher.
+    if ((me.role_level || 1) >= 3) {
+      const { data: volList } = await supabase.from('volunteers').select('*').order('full_name');
+      if (volList) setAllVolunteers(volList);
     }
+
+    selectMentorProfile(me);
   };
 
   const selectMentorProfile = async (vol) => {
@@ -68,8 +57,8 @@ export default function ProfilePage() {
     setFb(vol.fb_profile_url || '');
     setFbPrivate(!vol.fb_is_public);
 
-    const { data: roles } = await supabase.from('roles').select('*').eq('level', vol.role_level).single();
-    if (roles) setUserRole(roles);
+    const { data: roles } = await supabase.from('roles').select('*').eq('level', vol.role_level || 1).maybeSingle();
+    setUserRole(roles || { name: 'Volunteer', level: vol.role_level || 1 });
 
     const { data: appLogs } = await supabase
       .from('attendance_logs')
@@ -136,13 +125,10 @@ export default function ProfilePage() {
   const target = activeVolunteer.target_classes || 20;
   const daysLeft = Math.max(0, target - completedCount);
   const pct = target > 0 ? Math.min(100, Math.round((completedCount / target) * 100 * 10) / 10) : 0;
-  const designatedFormatted = (activeVolunteer.designated_days || []).join(',') || 'Sunday,Tuesday,Friday';
+  const designatedFormatted = (activeVolunteer.designated_days || []).join(', ') || 'None assigned';
 
-  // Total verified hours calculation (starts at 0.0)
-  const totalHours = logs.reduce((acc, log) => {
-    const h = parseFloat(log.hours || '2.0');
-    return acc + (isNaN(h) ? 2.0 : h);
-  }, 0).toFixed(1);
+  // Total verified time, summed from each approved session's real in/out times.
+  const totalHours = formatMinutes(sumMinutes(logs));
 
   // Dynamic consecutive streak based on actual approved logs
   const currentStreak = logs.length;
@@ -190,8 +176,9 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <label style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--prodip-muted)', textTransform: 'uppercase' }}>Switch Mentor:</label>
+          {viewerLevel >= 3 && allVolunteers.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <label style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--prodip-muted)', textTransform: 'uppercase' }}>View mentor:</label>
             <select
               value={activeVolunteer.student_id}
               onChange={(e) => {
@@ -207,11 +194,12 @@ export default function ProfilePage() {
               ))}
             </select>
           </div>
+          )}
         </div>
       </div>
 
       {/* THREE KEY DASHBOARD CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: '20px', marginBottom: '24px' }}>
         {/* CARD 1: DESIGNATED STREAK */}
         <div className="card" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
@@ -257,7 +245,7 @@ export default function ProfilePage() {
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px' }}>
             <span style={{ color: 'var(--prodip-muted)' }}>Total Verified Hours:</span>
-            <b style={{ color: 'var(--prodip-navy)' }}>{totalHours} Hours</b>
+            <b style={{ color: 'var(--prodip-navy)' }}>{totalHours}</b>
           </div>
         </div>
 
@@ -283,12 +271,12 @@ export default function ProfilePage() {
       </div>
 
       {/* NEXT DESIGNATED CLASS HIGHLIGHT & SUBSTITUTE LINK */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div className="card" style={{ background: 'linear-gradient(135deg, #1e2c4f, #141e36)', color: 'white', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--prodip-gold)', textTransform: 'uppercase' }}>Next Designated Class Session</span>
             <div style={{ fontSize: '16px', fontWeight: 800, marginTop: '2px' }}>{getNextClassDate(activeVolunteer.designated_days)}</div>
-            <span style={{ fontSize: '11.5px', color: '#cbd5e1' }}>Class Time: 10:00 AM - 12:00 PM</span>
+            <span style={{ fontSize: '11.5px', color: '#cbd5e1' }}>Use the Check In button on the home page when class starts</span>
           </div>
           <Clock size={28} color="var(--prodip-gold)" />
         </div>
@@ -320,7 +308,7 @@ export default function ProfilePage() {
         </div>
 
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px', minWidth: '700px' }}>
+          <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--prodip-border)', color: '#64748b' }}>
                 <th style={{ padding: '12px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>DATE &amp; DAY</th>
@@ -336,20 +324,20 @@ export default function ProfilePage() {
               {logs.length > 0 ? (
                 logs.map((log) => (
                   <tr key={log.id} style={{ borderBottom: '1px solid var(--prodip-border)' }}>
-                    <td style={{ padding: '14px 12px' }}>
+                    <td data-label="Date" style={{ padding: '14px 12px' }}>
                       <b>{log.session_date}</b>
                       <span style={{ fontSize: '11.5px', color: 'var(--prodip-muted)', display: 'block' }}>{log.day_of_week}</span>
                     </td>
-                    <td style={{ padding: '14px 12px' }}>
+                    <td data-label="Activity" style={{ padding: '14px 12px' }}>
                       <span style={{ background: '#e0e7ff', color: '#3730a3', fontSize: '11.5px', fontWeight: 700, padding: '3px 9px', borderRadius: '6px' }}>
                         {log.activity_title}
                       </span>
                     </td>
-                    <td style={{ padding: '14px 12px' }}>
+                    <td data-label="Attendance" style={{ padding: '14px 12px' }}>
                       {log.replacement_name ? (
                         <div>
                           <span style={{ background: '#f3e8ff', color: '#6b21a8', fontSize: '11.5px', fontWeight: 700, padding: '4px 10px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            🔀 Substituted by {log.replacement_name} (Streak Preserved)
+                            🔀 Covered for {log.instructor_name}
                           </span>
                           {log.notes && <span style={{ fontSize: '11px', color: 'var(--prodip-muted)', display: 'block', marginTop: '2px', fontStyle: 'italic' }}>{log.notes}</span>}
                         </div>
@@ -359,10 +347,10 @@ export default function ProfilePage() {
                         </span>
                       )}
                     </td>
-                    <td style={{ padding: '14px 12px', color: '#475569' }}>{log.in_time || '02:00 PM'}</td>
-                    <td style={{ padding: '14px 12px', color: '#475569' }}>{log.out_time || '06:00 PM'}</td>
-                    <td style={{ padding: '14px 12px' }}><b>{log.hours || '2.0 hrs'}</b></td>
-                    <td style={{ padding: '14px 12px' }}>
+                    <td data-label="In" style={{ padding: '14px 12px', color: '#475569' }}>{formatClock(log.in_time)}</td>
+                    <td data-label="Out" style={{ padding: '14px 12px', color: '#475569' }}>{log.out_time ? formatClock(log.out_time) : '--'}</td>
+                    <td data-label="Duration" style={{ padding: '14px 12px' }}><b>{logDuration(log)}</b></td>
+                    <td data-label="Status" style={{ padding: '14px 12px' }}>
                       <span style={{ background: '#059669', color: 'white', fontSize: '11.5px', fontWeight: 800, padding: '4px 12px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                         ✓ Approved
                       </span>

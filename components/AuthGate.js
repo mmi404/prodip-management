@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import LoginModal from '@/components/LoginModal';
+import { fetchCurrentVolunteer } from '@/lib/volunteer';
 import { Lock, ShieldAlert, LogIn, ArrowLeft } from 'lucide-react';
 
 export default function AuthGate({ minRoleLevel = 1, requiredRoleName = 'Volunteer', children }) {
@@ -35,34 +36,7 @@ export default function AuthGate({ minRoleLevel = 1, requiredRoleName = 'Volunte
 
     setSession(session);
 
-    // Fetch volunteer profile to verify role level
-    const { data: vol } = await supabase
-      .from('volunteers')
-      .select('*')
-      .eq('auth_user_id', session.user.id)
-      .single();
-
-    if (vol) {
-      setVolunteer(vol);
-    } else {
-      const { data: volByEmail } = await supabase
-        .from('volunteers')
-        .select('*')
-        .eq('email', session.user.email)
-        .single();
-
-      if (volByEmail) {
-        setVolunteer(volByEmail);
-      } else {
-        setVolunteer({
-          student_id: session.user.user_metadata?.student_id || session.user.email?.split('@')[0] || 'VOLUNTEER',
-          full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Volunteer',
-          email: session.user.email,
-          role_level: 1
-        });
-      }
-    }
-
+    setVolunteer(await fetchCurrentVolunteer(session));
     setLoading(false);
   };
 
