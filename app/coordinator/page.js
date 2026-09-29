@@ -361,8 +361,8 @@ export default function CoordinatorPage() {
 
   const isAdmin = (activeVolunteer?.role_level || 0) >= 6;
   // Coordinators can only message people strictly below their own role level;
-  // the Master Admin can also broadcast to everyone via notifAudience === 'all'.
-  const messageable = roster.filter((v) => v.student_id !== activeVolunteer?.student_id && v.role_level < (activeVolunteer?.role_level || 0));
+  // the Master Admin can pick anyone (matches notify_user's own check server-side).
+  const messageable = roster.filter((v) => v.student_id !== activeVolunteer?.student_id && (isAdmin || v.role_level < (activeVolunteer?.role_level || 0)));
 
   const toggleNotifRecipient = (id) => {
     setNotifRecipients((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -684,7 +684,7 @@ export default function CoordinatorPage() {
           {notifAudience === 'pick' && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '140px', overflowY: 'auto', border: '1px solid var(--prodip-border)', borderRadius: '8px', padding: '10px', marginBottom: '14px' }}>
               {messageable.length === 0 ? (
-                <span style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>No one at a lower role level to message.</span>
+                <span style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>{isAdmin ? 'No other volunteers to message.' : 'No one at a lower role level to message.'}</span>
               ) : (
                 messageable.map((v) => (
                   <label key={v.student_id} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', background: notifRecipients.includes(v.student_id) ? 'var(--status-info-bg)' : '#f1f5f9', padding: '5px 9px', borderRadius: '14px', cursor: 'pointer' }}>

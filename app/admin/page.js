@@ -8,7 +8,7 @@ import AuthGate from '@/components/AuthGate';
 import { useToast } from '@/components/Toast';
 import { fetchCurrentVolunteer } from '@/lib/volunteer';
 import { formatClock, logDuration } from '@/lib/time';
-import { ShieldCheck, Check, X, Users, BookOpen, UserPlus, Upload, Download, FileSpreadsheet, Search, Trash2 } from 'lucide-react';
+import { ShieldCheck, Check, X, Users, BookOpen, UserPlus, Upload, Download, FileSpreadsheet, Search, Trash2, Pencil } from 'lucide-react';
 
 export default function AdminPage() {
   const { toast, ToastHost } = useToast();
@@ -17,6 +17,8 @@ export default function AdminPage() {
   const [volunteers, setVolunteers] = useState([]);
   const [activities, setActivities] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingTargetId, setEditingTargetId] = useState(null);
+  const [editingTargetValue, setEditingTargetValue] = useState('');
 
   // Modals state
   const [isAddVolunteerModalOpen, setIsAddVolunteerModalOpen] = useState(false);
@@ -217,6 +219,34 @@ export default function AdminPage() {
     toast(`${name} removed.`, 'info');
   };
 
+  const startEditTarget = (v) => {
+    setEditingTargetId(v.student_id);
+    setEditingTargetValue(String(v.target_classes || 20));
+  };
+
+  const cancelEditTarget = () => {
+    setEditingTargetId(null);
+    setEditingTargetValue('');
+  };
+
+  const saveEditTarget = async (id) => {
+    const value = parseInt(editingTargetValue, 10);
+    if (!Number.isFinite(value) || value <= 0) {
+      return toast('Enter a valid positive number.', 'error');
+    }
+    const { data, error } = await supabase
+      .from('volunteers')
+      .update({ target_classes: value })
+      .eq('student_id', id)
+      .select('student_id');
+    if (error || !data || data.length === 0) {
+      return toast(error ? `Could not update: ${error.message}` : 'Not allowed to update this volunteer.', 'error', 7000);
+    }
+    setVolunteers((prev) => prev.map((v) => (v.student_id === id ? { ...v, target_classes: value } : v)));
+    toast('Target classes updated.', 'success');
+    cancelEditTarget();
+  };
+
   const filteredVolunteers = volunteers.filter(v =>
     v.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     v.student_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -363,7 +393,41 @@ export default function AdminPage() {
                     <td data-label="Role" style={{ padding: '12px' }}>
                       <span className="badge badge-info">Level {v.role_level || 1}</span>
                     </td>
-                    <td data-label="Target" style={{ padding: '12px' }}><b>{v.target_classes || 20}</b></td>
+                    <td data-label="Target" style={{ padding: '12px' }}>
+                      {editingTargetId === v.student_id ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <input
+                            type="number"
+                            min="1"
+                            autoFocus
+                            value={editingTargetValue}
+                            onChange={(e) => setEditingTargetValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveEditTarget(v.student_id);
+                              if (e.key === 'Escape') cancelEditTarget();
+                            }}
+                            style={{ width: '64px', padding: '4px 6px', borderRadius: '6px', border: '1px solid var(--prodip-border)' }}
+                          />
+                          <button onClick={() => saveEditTarget(v.student_id)} className="btn-row" style={{ background: 'var(--status-success-solid)', color: 'white', padding: '4px 8px' }}>
+                            <Check size={12} />
+                          </button>
+                          <button onClick={cancelEditTarget} className="btn-row" style={{ background: '#f1f5f9', color: '#475569', padding: '4px 8px' }}>
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <b>{v.target_classes || 20}</b>
+                          <button
+                            onClick={() => startEditTarget(v)}
+                            title="Edit target classes"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--prodip-muted)', padding: '2px' }}
+                          >
+                            <Pencil size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </td>
                     <td data-label="Days" style={{ padding: '12px', fontSize: '12px' }}>
                       {Array.isArray(v.designated_days) && v.designated_days.length > 0 ? v.designated_days.join(', ') : '—'}
                     </td>
