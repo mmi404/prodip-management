@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import LoginModal from '@/components/LoginModal';
+import NotificationBell from '@/components/NotificationBell';
 import { fetchCurrentVolunteer } from '@/lib/volunteer';
 import {
   User, Menu, X, Shield, ShieldCheck, LogIn, LogOut,
@@ -174,8 +175,9 @@ export default function Navbar() {
       {isLoggedIn ? (
         <>
           <div className="mobile-menu-divider" />
-          <div className="mobile-menu-identity">
-            {activeVolunteer?.full_name || 'Volunteer'} · {ROLE_LABEL(userRoleLevel)}
+          <div className="mobile-menu-identity" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>{activeVolunteer?.full_name || 'Volunteer'} · {ROLE_LABEL(userRoleLevel)}</span>
+            <NotificationBell studentId={activeVolunteer?.student_id} />
           </div>
           {menuLinks.map((l) => (
             <Link key={l.href} href={l.href} className={`mobile-menu-item ${pathname === l.href ? 'active' : ''}`} onClick={closeMenu}>
@@ -242,7 +244,10 @@ export default function Navbar() {
                 <LogIn size={14} /> Sign In
               </button>
             ) : (
-              <ProfileMenu />
+              <>
+                <NotificationBell studentId={activeVolunteer?.student_id} />
+                <ProfileMenu />
+              </>
             )}
           </div>
 

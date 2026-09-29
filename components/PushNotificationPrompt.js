@@ -2,29 +2,46 @@
 
 import { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { fetchCurrentVolunteer } from '@/lib/volunteer';
+import { subscribeToPush, pushSupported } from '@/lib/push';
 
 export default function PushNotificationPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
+  const [studentId, setStudentId] = useState(null);
+  const [enabling, setEnabling] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission === 'default' && !sessionStorage.getItem('push_prompt_dismissed')) {
-        setShowPrompt(true);
-      }
-    }
+    checkEligibility();
   }, []);
 
-  const handleEnable = () => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      Notification.requestPermission().then((permission) => {
+  const checkEligibility = async () => {
+    if (!pushSupported() || Notification.permission !== 'default' || sessionStorage.getItem('push_prompt_dismissed')) {
+      return;
+    }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const vol = await fetchCurrentVolunteer(session);
+    if (vol?.student_id) {
+      setStudentId(vol.student_id);
+      setShowPrompt(true);
+    }
+  };
+
+  const handleEnable = async () => {
+    setEnabling(true);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
         setShowPrompt(false);
-        if (permission === 'granted') {
-          new Notification('PRODIP PVMS', {
-            body: 'Push notifications enabled! You will receive instant alerts for substitute requests.',
-            icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-          });
-        }
-      });
+        return;
+      }
+      await subscribeToPush(studentId);
+    } catch (err) {
+      console.error('Push subscription failed:', err);
+    } finally {
+      setEnabling(false);
+      setShowPrompt(false);
     }
   };
 
@@ -66,15 +83,16 @@ export default function PushNotificationPrompt() {
         </div>
         <div>
           <b style={{ fontSize: '14px', color: '#fff', display: 'block' }}>Enable Instant Push Notifications</b>
-          <span style={{ fontSize: '12.5px', color: '#cbd5e1' }}>Get instant browser alerts for substitute teacher requests and class updates.</span>
+          <span style={{ fontSize: '12.5px', color: '#cbd5e1' }}>Get alerts for class reminders, substitute requests, and milestones — even when this tab is closed.</span>
         </div>
       </div>
       <div style={{ display: 'flex', gap: '8px' }}>
         <button
-          style={{ background: 'var(--prodip-gold)', color: '#000', border: 'none', padding: '9px 18px', borderRadius: '8px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
+          style={{ background: 'var(--prodip-gold)', color: '#000', border: 'none', padding: '9px 18px', borderRadius: '8px', fontSize: '13px', fontWeight: 800, cursor: enabling ? 'default' : 'pointer', opacity: enabling ? 0.7 : 1 }}
           onClick={handleEnable}
+          disabled={enabling}
         >
-          Enable Notifications
+          {enabling ? 'Enabling...' : 'Enable Notifications'}
         </button>
         <button
           style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '9px 12px', fontSize: '13px', cursor: 'pointer' }}

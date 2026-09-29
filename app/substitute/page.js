@@ -7,6 +7,7 @@ import SubstituteRequestBox from '@/components/SubstituteRequestBox';
 import AuthGate from '@/components/AuthGate';
 import { useToast } from '@/components/Toast';
 import { ArrowRightLeft, UserCheck, Check, X } from 'lucide-react';
+import { notifySubstituteAccepted } from '@/lib/notifications';
 
 const STATUS_STYLE = {
   pending: { tone: 'warning', label: 'Pending' },
@@ -49,13 +50,22 @@ export default function SubstitutePage() {
     setRequestsList(data || []);
   };
 
-  const respond = async (reqId, accepted) => {
+  const respond = async (req, accepted) => {
     const { error } = await supabase
       .from('substitute_requests')
       .update({ status: accepted ? 'accepted' : 'declined', responded_at: new Date().toISOString() })
-      .eq('id', reqId);
+      .eq('id', req.id);
     if (error) return toast(`Could not save: ${error.message}`, 'error');
     toast(accepted ? 'You accepted this class.' : 'Request declined.', accepted ? 'success' : 'info');
+
+    if (accepted) {
+      notifySubstituteAccepted(
+        req.from_id,
+        'Substitute request accepted',
+        `${activeVolunteer.full_name} will cover your ${req.class_day} class on ${req.class_date}.`
+      ).catch((err) => console.error('notifySubstituteAccepted failed:', err));
+    }
+
     loadRequests();
   };
 
@@ -128,10 +138,10 @@ export default function SubstitutePage() {
 
                       {req.status === 'pending' && incoming && (
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button className="btn-row" onClick={() => respond(req.id, true)} style={{ background: 'var(--status-success-solid)', color: '#fff' }}>
+                          <button className="btn-row" onClick={() => respond(req, true)} style={{ background: 'var(--status-success-solid)', color: '#fff' }}>
                             <Check size={14} /> Accept
                           </button>
-                          <button className="btn-row" onClick={() => respond(req.id, false)} style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-fg)' }}>
+                          <button className="btn-row" onClick={() => respond(req, false)} style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-fg)' }}>
                             <X size={14} /> Decline
                           </button>
                         </div>
