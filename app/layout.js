@@ -5,6 +5,14 @@ import Footer from '@/components/Footer';
 export const metadata = {
   title: 'প্রদীপ (Prodip) · স্বপ্ন বুননের একটি পথচলা',
   description: 'Prodip Volunteer Management System (PVMS) for CUET',
+  manifest: '/manifest.json',
+  icons: {
+    apple: '/apple-touch-icon.png'
+  }
+};
+
+export const viewport = {
+  themeColor: '#1E2C4F'
 };
 
 export default function RootLayout({ children }) {
