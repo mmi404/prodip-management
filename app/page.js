@@ -7,14 +7,12 @@ import PushNotificationPrompt from '@/components/PushNotificationPrompt';
 import SubstituteNotificationBanner from '@/components/SubstituteNotificationBanner';
 import OneTapCheckInWidget from '@/components/OneTapCheckInWidget';
 import LoginModal from '@/components/LoginModal';
-import { fetchCurrentVolunteer } from '@/lib/volunteer';
-import { BookOpen, LogIn, ArrowRight, User, Shield, ShieldCheck, CheckSquare, ArrowRightLeft, Award } from 'lucide-react';
+import { BookOpen, LogIn, ArrowRight } from 'lucide-react';
 
 export default function HomePage() {
   const [activities, setActivities] = useState([]);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [roleLevel, setRoleLevel] = useState(0);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -30,12 +28,6 @@ export default function HomePage() {
   const checkSession = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     setIsLoggedIn(!!session);
-    if (session) {
-      const vol = await fetchCurrentVolunteer(session);
-      setRoleLevel(vol?.role_level || 1);
-    } else {
-      setRoleLevel(0);
-    }
   };
 
   const fetchActivities = async () => {
@@ -61,10 +53,10 @@ export default function HomePage() {
       {/* GUEST PORTAL SIGN IN CALLOUT (Shown only when logged out) */}
       {!isLoggedIn && (
         <div style={{
-          background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
+          background: 'var(--prodip-card)',
           border: '1px solid var(--prodip-border)',
           padding: '16px 20px',
-          borderRadius: '14px',
+          borderRadius: 'var(--radius-md)',
           marginBottom: '24px',
           display: 'flex',
           alignItems: 'center',
@@ -77,26 +69,15 @@ export default function HomePage() {
               Are you a registered Prodip volunteer or coordinator?
             </b>
             <span style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>
-              Sign in to record your 1-tap class attendance, check streaks, and access coordinator sheets.
+              Sign in to record your 1-tap class attendance, check streaks, and access your panels.
             </span>
           </div>
 
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
               onClick={() => setIsLoginModalOpen(true)}
-              style={{
-                background: 'var(--prodip-navy)',
-                color: 'white',
-                border: 'none',
-                padding: '8px 18px',
-                borderRadius: '8px',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
+              className="btn-primary-action"
+              style={{ background: 'var(--prodip-navy)', padding: '9px 18px', minHeight: 'auto', fontSize: '13px' }}
             >
               <LogIn size={14} /> Volunteer Sign In
             </button>
@@ -106,8 +87,8 @@ export default function HomePage() {
                 background: 'transparent',
                 color: 'var(--prodip-navy)',
                 textDecoration: 'none',
-                padding: '8px 14px',
-                borderRadius: '8px',
+                padding: '9px 14px',
+                borderRadius: 'var(--radius-sm)',
                 fontSize: '13px',
                 fontWeight: 600,
                 display: 'inline-flex',
@@ -121,12 +102,12 @@ export default function HomePage() {
         </div>
       )}
 
-      <h2 className="section-title" style={{ fontSize: '20px', color: 'var(--prodip-navy)', marginBottom: '16px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <BookOpen size={18} color="var(--prodip-olive)" />
+      <h2 className="section-title" style={{ fontSize: '18px', color: 'var(--prodip-navy)', marginBottom: '16px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <BookOpen size={17} color="var(--prodip-olive)" />
         আমাদের নিয়মিত কার্যক্রমসমূহ
       </h2>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '18px', marginTop: '18px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '18px' }}>
         {activities.length > 0 ? (
           activities.map((act) => (
             <div key={act.id} className="card" style={{ padding: '24px', lineHeight: 1.6 }}>
@@ -141,43 +122,9 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* ROLE-BASED QUICK ACCESS — visible right below the activities, so phone users never have to hunt for the sheet */}
-      {isLoggedIn && (
-        <div style={{ marginTop: '28px' }}>
-          <h2 className="section-title" style={{ fontSize: '20px', color: 'var(--prodip-navy)', marginBottom: '14px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Shield size={18} color="var(--prodip-olive)" />
-            আপনার প্যানেল · Your Panels
-          </h2>
-          <div className="panel-grid">
-            <Link href="/profile" className="btn-panel-link" style={{ background: 'var(--prodip-navy)' }}>
-              <User size={18} /> Mentor Dashboard
-            </Link>
-            <Link href="/substitute" className="btn-panel-link" style={{ background: '#b45309' }}>
-              <ArrowRightLeft size={18} /> Substitute Requests
-            </Link>
-            {roleLevel >= 3 && (
-              <Link href="/coordinator" className="btn-panel-link coord-bg">
-                <Shield size={18} /> Coordinator Sheet
-              </Link>
-            )}
-            {roleLevel >= 4 && (
-              <Link href="/approvals" className="btn-panel-link admin-bg">
-                <CheckSquare size={18} /> Approvals
-              </Link>
-            )}
-            {roleLevel >= 3 && (
-              <Link href="/audit" className="btn-panel-link" style={{ background: '#0f766e' }}>
-                <Award size={18} /> Milestones &amp; Certs
-              </Link>
-            )}
-            {roleLevel >= 6 && (
-              <Link href="/admin" className="btn-panel-link admin-bg">
-                <ShieldCheck size={18} /> Volunteers &amp; Roles
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
+      {/* No role-based button grid here on purpose — a logged-in volunteer's panels
+          live one tap away in the profile menu (desktop) or the bottom tab bar
+          (phone), so this page doesn't repeat the same links a second time. */}
 
       <LoginModal
         isOpen={isLoginModalOpen}
