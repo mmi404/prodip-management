@@ -323,6 +323,151 @@ svg {
     background: transparent;
 }
 
+/* ─── NOTIFICATION BELL ─── */
+.notif-bell {
+    position: relative;
+}
+
+.notif-bell-trigger {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.notif-bell-trigger:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.notif-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 3px;
+    border-radius: 8px;
+    background: var(--status-danger-solid);
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.notif-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 320px;
+    max-width: 88vw;
+    background: var(--prodip-card);
+    color: var(--prodip-text);
+    border: 1px solid var(--prodip-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 1200;
+    animation: dropdownIn 0.14s ease-out;
+    overflow: hidden;
+}
+
+.notif-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--prodip-border);
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--prodip-navy);
+}
+
+.notif-mark-all {
+    background: none;
+    border: none;
+    color: var(--prodip-olive);
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.notif-panel-list {
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+.notif-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 11px 14px;
+    border: none;
+    border-bottom: 1px solid var(--prodip-border);
+    background: transparent;
+    cursor: pointer;
+}
+
+.notif-item:last-child {
+    border-bottom: none;
+}
+
+.notif-item:hover {
+    background: var(--surface-hover);
+}
+
+.notif-item.unread {
+    background: var(--status-info-bg);
+}
+
+.notif-item-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--prodip-navy);
+}
+
+.notif-item-body {
+    font-size: 12px;
+    color: var(--prodip-text);
+    margin-top: 2px;
+    line-height: 1.4;
+}
+
+.notif-item-meta {
+    font-size: 10.5px;
+    color: var(--prodip-muted);
+    margin-top: 4px;
+}
+
+.notif-empty {
+    padding: 24px 14px;
+    text-align: center;
+    color: var(--prodip-muted);
+    font-size: 12.5px;
+}
+
+@media (max-width: 860px) {
+    /* .ribbon-nav.is-open scrolls its own content, which would otherwise clip
+       an absolutely-positioned panel — fixed positioning escapes that. */
+    .notif-panel {
+        position: fixed;
+        top: 64px;
+        left: 12px;
+        right: 12px;
+        width: auto;
+        max-width: none;
+    }
+}
+
 /* ─── STATUS BADGES (one shape, semantic color only) ─── */
 .badge {
     display: inline-flex;
@@ -663,6 +808,10 @@ svg {
 }
 
 .mobile-nav-toggle {
+    display: none;
+}
+
+.mobile-menu {
     display: none;
 }
 
