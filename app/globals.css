@@ -692,11 +692,13 @@ svg {
         width: 40px;
     }
 
-    /* On mobile the bottom tab bar + this drawer cover navigation, so the
-       desktop text-link row and the profile dropdown trigger are replaced
-       by one flat list inside the drawer. */
+    /* Mobile gets its OWN simple, always-rendered menu (see .mobile-menu
+       below) instead of reusing the desktop row/dropdown — that reuse is
+       what broke before: the dropdown only existed in the DOM while
+       `menuOpen` was true, and its only trigger was a button hidden here,
+       so the whole account section was permanently unreachable on phones. */
     .ribbon-links,
-    .nav-user {
+    .ribbon-actions {
         display: none;
     }
 
@@ -715,79 +717,92 @@ svg {
         display: flex;
     }
 
-    .ribbon-nav.is-open .ribbon-links {
+    /* ─── MOBILE DRAWER MENU — one flat list, no state gate, no override chain ─── */
+    .mobile-menu {
+        display: none;
+    }
+
+    .ribbon-nav.is-open .mobile-menu {
         display: flex;
         flex-direction: column;
         gap: 2px;
-        overflow: visible;
+        width: 100%;
     }
 
-    .ribbon-link {
+    .mobile-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
         width: 100%;
-        justify-content: flex-start;
+        box-sizing: border-box;
         padding: 12px 14px;
         border-radius: 10px;
-        font-size: 14px;
-        box-sizing: border-box;
-    }
-
-    .ribbon-nav.is-open .nav-user {
-        display: block;
-        width: 100%;
-        margin-top: 8px;
-        padding-top: 10px;
-        border-top: 1px solid rgba(255,255,255,0.15);
-    }
-
-    .ribbon-nav.is-open .nav-user-trigger {
-        display: none;
-    }
-
-    .ribbon-nav.is-open .nav-dropdown {
-        display: block;
-        position: static;
-        width: 100%;
-        background: transparent;
         border: none;
-        box-shadow: none;
-        color: white;
-        padding: 0;
-        animation: none;
-    }
-
-    .ribbon-nav.is-open .nav-dropdown-header {
-        padding: 4px 14px 12px;
-        border-bottom-color: rgba(255,255,255,0.15);
-    }
-
-    .ribbon-nav.is-open .nav-dropdown-name {
-        color: white;
-    }
-
-    .ribbon-nav.is-open .nav-dropdown-meta {
-        color: rgba(255,255,255,0.65);
-    }
-
-    .ribbon-nav.is-open .nav-dropdown-item {
+        background: transparent;
         color: rgba(255,255,255,0.85);
-        padding: 12px 14px;
         font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        text-align: left;
     }
 
-    .ribbon-nav.is-open .nav-dropdown-item:hover {
+    .mobile-menu-item svg {
+        color: rgba(255,255,255,0.6);
+        flex-shrink: 0;
+    }
+
+    .mobile-menu-item:hover {
         background: rgba(255,255,255,0.08);
     }
 
-    .ribbon-nav.is-open .nav-dropdown-item svg {
-        color: rgba(255,255,255,0.65);
+    .mobile-menu-item.active {
+        background: rgba(255,255,255,0.18);
+        color: white;
     }
 
-    .ribbon-nav.is-open .nav-dropdown-divider {
+    .mobile-menu-item.active svg {
+        color: white;
+    }
+
+    .mobile-menu-item.danger {
+        color: #fca5a5;
+    }
+
+    .mobile-menu-item.danger svg {
+        color: #fca5a5;
+    }
+
+    .mobile-menu-signin {
+        justify-content: center;
+        background: var(--prodip-gold);
+        color: #1e2c4f;
+        font-weight: 800;
+        margin-top: 4px;
+    }
+
+    .mobile-menu-signin svg {
+        color: #1e2c4f;
+    }
+
+    .mobile-menu-signin:hover {
+        background: var(--prodip-gold);
+        opacity: 0.92;
+    }
+
+    .mobile-menu-divider {
+        height: 1px;
         background: rgba(255,255,255,0.15);
+        margin: 8px 4px;
     }
 
-    .ribbon-nav.is-open .nav-backdrop {
-        display: none;
+    .mobile-menu-identity {
+        padding: 6px 14px 4px;
+        color: rgba(255,255,255,0.55);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
     }
 
     .container {

@@ -8,7 +8,7 @@ import LoginModal from '@/components/LoginModal';
 import { fetchCurrentVolunteer } from '@/lib/volunteer';
 import {
   User, Menu, X, Shield, ShieldCheck, LogIn, LogOut,
-  Home, CheckSquare, ArrowRightLeft, MoreHorizontal, Award, ChevronDown
+  Home, CheckSquare, ArrowRightLeft, MoreHorizontal, Award, BookOpen, ChevronDown
 } from 'lucide-react';
 
 const ROLE_LABEL = (level) => {
@@ -87,8 +87,8 @@ export default function Navbar() {
     setMenuOpen(false);
   };
 
-  // One list of destinations, gated by role — used by both the desktop
-  // dropdown and the mobile drawer, so the two can never drift apart.
+  // One list of destinations, gated by role — used by the desktop dropdown,
+  // the mobile drawer, AND the bottom tab bar's "more" set, so they can't drift apart.
   const menuLinks = [
     { href: '/profile', label: 'Mentor Dashboard', icon: <User size={16} /> },
     { href: '/substitute', label: 'Substitute Requests', icon: <ArrowRightLeft size={16} /> },
@@ -113,6 +113,8 @@ export default function Navbar() {
   const initial = activeVolunteer?.full_name?.charAt(0) || 'V';
   const firstName = activeVolunteer?.full_name?.split(' ')[0] || 'Account';
 
+  // ── DESKTOP ONLY: avatar trigger + click-to-open dropdown. Entirely hidden
+  // below 860px by CSS, so it never needs to double as the mobile menu. ──
   const ProfileMenu = () => (
     <div className="nav-user" ref={menuRef}>
       <button
@@ -152,6 +154,45 @@ export default function Navbar() {
     </div>
   );
 
+  // ── MOBILE ONLY: one flat, always-rendered list (no hidden trigger to
+  // click, no state gate) — hidden on desktop purely by CSS. ──
+  const MobileMenu = () => (
+    <div className="mobile-menu">
+      <Link href="/" className={`mobile-menu-item ${pathname === '/' ? 'active' : ''}`} onClick={closeMenu}>
+        <Home size={16} /> Home
+      </Link>
+      <Link href="/activities" className={`mobile-menu-item ${pathname === '/activities' ? 'active' : ''}`} onClick={closeMenu}>
+        <BookOpen size={16} /> Activities
+      </Link>
+
+      {isLoggedIn ? (
+        <>
+          <div className="mobile-menu-divider" />
+          <div className="mobile-menu-identity">
+            {activeVolunteer?.full_name || 'Volunteer'} · {ROLE_LABEL(userRoleLevel)}
+          </div>
+          {menuLinks.map((l) => (
+            <Link key={l.href} href={l.href} className={`mobile-menu-item ${pathname === l.href ? 'active' : ''}`} onClick={closeMenu}>
+              {l.icon} {l.label}
+            </Link>
+          ))}
+          <div className="mobile-menu-divider" />
+          <button type="button" className="mobile-menu-item danger" onClick={handleSignOut}>
+            <LogOut size={16} /> Sign Out
+          </button>
+        </>
+      ) : (
+        <button
+          type="button"
+          className="mobile-menu-item mobile-menu-signin"
+          onClick={() => { closeMenu(); setIsLoginModalOpen(true); }}
+        >
+          <LogIn size={16} /> Sign In
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <>
       <header className="ribbon-bar">
@@ -177,9 +218,7 @@ export default function Navbar() {
         </button>
 
         <nav className={`ribbon-nav ${isOpen ? 'is-open' : ''}`}>
-          {/* PUBLIC LINKS — a short, flat, always-the-same list. Everything
-              role-specific lives one tap away in the profile menu instead
-              of being bolted on here as another colored pill. */}
+          {/* DESKTOP: a short, flat, always-the-same link row + the avatar dropdown. */}
           <div className="ribbon-links">
             <Link href="/" className={`ribbon-link ${pathname === '/' ? 'active-tab' : ''}`} onClick={closeMenu}>
               Home
@@ -198,6 +237,9 @@ export default function Navbar() {
               <ProfileMenu />
             )}
           </div>
+
+          {/* MOBILE: its own independent list — see MobileMenu above. */}
+          <MobileMenu />
         </nav>
       </header>
 
