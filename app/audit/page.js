@@ -594,6 +594,9 @@ export default function AuditPage() {
                         <span className={`badge ${log.status === 'Approved' ? 'badge-success' : log.status === 'Rejected' ? 'badge-danger' : 'badge-warning'}`}>
                           {log.status}
                         </span>
+                        {log.status !== 'Pending' && log.decided_by_name && (
+                          <div style={{ fontSize: '11px', color: 'var(--prodip-muted)', marginTop: '3px' }}>by {log.decided_by_name}</div>
+                        )}
                       </td>
                     </tr>
                   ))

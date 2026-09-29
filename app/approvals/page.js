@@ -6,16 +6,19 @@ import { supabase } from '@/lib/supabaseClient';
 import AuthGate from '@/components/AuthGate';
 import { useToast } from '@/components/Toast';
 import { fetchCurrentVolunteer } from '@/lib/volunteer';
-import { formatClock, logDuration } from '@/lib/time';
+import { formatClock, formatToTimeInput, durationMinutes, calcHours, logDuration } from '@/lib/time';
+import { notifyMilestone } from '@/lib/notifications';
 import { Shield, Check, X, Users, Search, Edit3, PlusCircle, UserPlus, Upload, Download, FileSpreadsheet } from 'lucide-react';
 
 export default function ApprovalsPage() {
   const { toast, ToastHost } = useToast();
   const [roleLevel, setRoleLevel] = useState(0);
+  const [activeVolunteer, setActiveVolunteer] = useState(null);
   const [activeTab, setActiveTab] = useState('queue'); // 'queue' | 'mentors'
   const [filterStatus, setFilterStatus] = useState('Pending'); // 'Pending' | 'Approved' | 'Rejected' | 'All'
   const [allLogs, setAllLogs] = useState([]);
   const [volunteers, setVolunteers] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modals state
@@ -23,6 +26,8 @@ export default function ApprovalsPage() {
   const [isBatchUploadModalOpen, setIsBatchUploadModalOpen] = useState(false);
   const [isEditMentorModalOpen, setIsEditMentorModalOpen] = useState(false);
   const [editingMentor, setEditingMentor] = useState(null);
+  const [isEditLogModalOpen, setIsEditLogModalOpen] = useState(false);
+  const [editingLog, setEditingLog] = useState(null);
 
   // Manual volunteer form
   const [newVolunteer, setNewVolunteer] = useState({
@@ -52,9 +57,11 @@ export default function ApprovalsPage() {
     if (session) {
       const vol = await fetchCurrentVolunteer(session);
       setRoleLevel(vol?.role_level || 0);
+      setActiveVolunteer(vol);
     }
     fetchLogs();
     fetchVolunteers();
+    fetchActivities();
   };
 
   const fetchLogs = async () => {
@@ -67,6 +74,11 @@ export default function ApprovalsPage() {
     setVolunteers(data || []);
   };
 
+  const fetchActivities = async () => {
+    const { data } = await supabase.from('activities').select('*').order('title');
+    setActivities(data || []);
+  };
+
   // A Supabase update that RLS denies returns NO error and zero rows, so we ask for the
   // updated row back (.select) and treat "nothing came back" as a failure instead of
   // pretending the approval worked.
@@ -74,9 +86,15 @@ export default function ApprovalsPage() {
     if (status === 'Approved' && !log.out_time) {
       return toast('This session has no out-time yet, so it cannot be approved. Ask the coordinator to fix it.', 'error');
     }
+    const patch = {
+      status,
+      decided_by_id: activeVolunteer?.student_id || null,
+      decided_by_name: activeVolunteer?.full_name || null,
+      decided_at: new Date().toISOString()
+    };
     const { data, error } = await supabase
       .from('attendance_logs')
-      .update({ status })
+      .update(patch)
       .eq('id', log.id)
       .select('id');
 
@@ -87,8 +105,72 @@ export default function ApprovalsPage() {
         7000
       );
     }
-    setAllLogs((prev) => prev.map((l) => (l.id === log.id ? { ...l, status } : l)));
+    setAllLogs((prev) => prev.map((l) => (l.id === log.id ? { ...l, ...patch } : l)));
     toast(status === 'Approved' ? 'Approved and credited.' : 'Rejected.', status === 'Approved' ? 'success' : 'info');
+
+    if (status === 'Approved') checkMilestone(log);
+  };
+
+  // Fires once when the credited volunteer's approved-class count crosses 50%
+  // or 100% of their target_classes — never re-fires on later approvals since
+  // the threshold has already been passed.
+  const checkMilestone = (log) => {
+    const creditedId = log.credited_to_id || log.instructor_id;
+    const target = volunteers.find((v) => v.student_id === creditedId)?.target_classes;
+    if (!target || target <= 0) return;
+
+    const priorApproved = allLogs.filter((l) => l.id !== log.id && (l.credited_to_id || l.instructor_id) === creditedId && l.status === 'Approved').length;
+    const newApproved = priorApproved + 1;
+    const crossed = (fraction) => priorApproved < target * fraction && newApproved >= target * fraction;
+
+    let title = null, body = null;
+    if (crossed(1)) {
+      title = 'Goal achieved!';
+      body = `You've completed ${newApproved}/${target} classes — your certificate target is met. 🎉`;
+    } else if (crossed(0.5)) {
+      title = 'Halfway there!';
+      body = `You've completed ${newApproved}/${target} classes — 50% of your certificate target.`;
+    }
+    if (title) notifyMilestone(creditedId, title, body).catch((err) => console.error('notifyMilestone failed:', err));
+  };
+
+  const openEditLogModal = (log) => {
+    setEditingLog({
+      ...log,
+      in_time: formatToTimeInput(log.in_time),
+      out_time: formatToTimeInput(log.out_time)
+    });
+    setIsEditLogModalOpen(true);
+  };
+
+  // Fixes a submitted-but-wrong record (time, activity, note) before it's approved —
+  // does not itself decide status, so Approve/Reject is still a separate, deliberate step.
+  const handleSaveEditLog = async () => {
+    if (!editingLog) return;
+    if (!editingLog.in_time || !editingLog.out_time) {
+      return toast('Both in-time and out-time are required.', 'error');
+    }
+    if (durationMinutes(editingLog.in_time, editingLog.out_time) === null) {
+      return toast('Out-time must be later than in-time.', 'error');
+    }
+
+    const patch = {
+      session_date: editingLog.session_date,
+      activity_title: editingLog.activity_title,
+      in_time: editingLog.in_time,
+      out_time: editingLog.out_time,
+      topic_covered: editingLog.topic_covered
+    };
+    const { data, error } = await supabase.from('attendance_logs').update(patch).eq('id', editingLog.id).select('id');
+
+    if (error || !data || data.length === 0) {
+      return toast(error ? `Update failed: ${error.message}` : 'Not allowed: your role cannot edit this record.', 'error', 7000);
+    }
+
+    setAllLogs((prev) => prev.map((l) => (l.id === editingLog.id ? { ...l, ...patch } : l)));
+    toast('Session updated.', 'success');
+    setIsEditLogModalOpen(false);
+    setEditingLog(null);
   };
 
   // Manual Volunteer Add
@@ -341,10 +423,22 @@ export default function ApprovalsPage() {
                         <span className={`badge ${log.status === 'Approved' ? 'badge-success' : log.status === 'Rejected' ? 'badge-danger' : 'badge-warning'}`}>
                           {log.status === 'Pending' ? '⌛ Pending' : log.status}
                         </span>
+                        {log.status !== 'Pending' && log.decided_by_name && (
+                          <span style={{ fontSize: '11px', color: 'var(--prodip-muted)', display: 'block', marginTop: '4px' }}>
+                            by {log.decided_by_name}
+                          </span>
+                        )}
                       </td>
                       <td data-label="Actions" style={{ padding: '14px 12px', textAlign: 'right' }}>
                         {log.status === 'Pending' ? (
                           <div className="row-actions">
+                            <button
+                              className="btn-row"
+                              onClick={() => openEditLogModal(log)}
+                              style={{ background: '#fff', border: '1px solid var(--prodip-border)', color: 'var(--prodip-navy)' }}
+                            >
+                              <Edit3 size={14} /> Edit
+                            </button>
                             <button
                               className="btn-row"
                               disabled={!log.out_time}
@@ -791,6 +885,104 @@ export default function ApprovalsPage() {
                 </button>
                 <button
                   onClick={handleSaveEditMentor}
+                  style={{ padding: '8px 18px', borderRadius: '6px', border: 'none', background: 'var(--prodip-navy)', color: 'white', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL 4: EDIT SESSION (BEFORE APPROVE/REJECT) ─── */}
+      {isEditLogModalOpen && editingLog && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '480px', padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--prodip-navy)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Edit3 size={18} /> Edit Session — {editingLog.replacement_name || editingLog.instructor_name}
+              </h3>
+              <button onClick={() => { setIsEditLogModalOpen(false); setEditingLog(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Session Date</label>
+                  <input
+                    type="date"
+                    value={editingLog.session_date}
+                    onChange={e => setEditingLog({ ...editingLog, session_date: e.target.value })}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--prodip-border)', borderRadius: '6px', fontSize: '13px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Activity</label>
+                  <select
+                    value={editingLog.activity_title}
+                    onChange={e => setEditingLog({ ...editingLog, activity_title: e.target.value })}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--prodip-border)', borderRadius: '6px', fontSize: '13px' }}
+                  >
+                    <option value={editingLog.activity_title}>{editingLog.activity_title}</option>
+                    {activities.filter(a => a.title !== editingLog.activity_title).map((a) => (
+                      <option key={a.id} value={a.title}>{a.title}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>In Time</label>
+                  <input
+                    type="time"
+                    value={editingLog.in_time || ''}
+                    onChange={e => setEditingLog({ ...editingLog, in_time: e.target.value })}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--prodip-border)', borderRadius: '6px', fontSize: '13px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Out Time</label>
+                  <input
+                    type="time"
+                    value={editingLog.out_time || ''}
+                    onChange={e => setEditingLog({ ...editingLog, out_time: e.target.value })}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--prodip-border)', borderRadius: '6px', fontSize: '13px' }}
+                  />
+                </div>
+              </div>
+
+              {editingLog.in_time && editingLog.out_time && (
+                <div style={{ fontSize: '12.5px', color: '#64748b', background: '#f8fafc', padding: '7px 10px', borderRadius: '6px', border: '1px solid var(--prodip-border)' }}>
+                  ⏱️ Duration:{' '}
+                  <b style={{ color: durationMinutes(editingLog.in_time, editingLog.out_time) === null ? '#b91c1c' : 'var(--prodip-navy)' }}>
+                    {durationMinutes(editingLog.in_time, editingLog.out_time) === null ? 'Out-time is before in-time' : calcHours(editingLog.in_time, editingLog.out_time)}
+                  </b>
+                </div>
+              )}
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Topic / Notes</label>
+                <textarea
+                  rows={2}
+                  value={editingLog.topic_covered || ''}
+                  onChange={e => setEditingLog({ ...editingLog, topic_covered: e.target.value })}
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--prodip-border)', borderRadius: '6px', fontSize: '13px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '4px' }}>
+                <button
+                  onClick={() => { setIsEditLogModalOpen(false); setEditingLog(null); }}
+                  style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid var(--prodip-border)', background: '#fff', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEditLog}
                   style={{ padding: '8px 18px', borderRadius: '6px', border: 'none', background: 'var(--prodip-navy)', color: 'white', cursor: 'pointer', fontWeight: 700 }}
                 >
                   Save Changes

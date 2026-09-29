@@ -336,6 +336,11 @@ export default function ProfilePage() {
                     <td data-label="Duration" style={{ padding: '14px 12px' }}><b>{logDuration(log)}</b></td>
                     <td data-label="Status" style={{ padding: '14px 12px' }}>
                       <span className="badge badge-success">✓ Approved</span>
+                      {log.decided_by_name && (
+                        <span style={{ fontSize: '11px', color: 'var(--prodip-muted)', display: 'block', marginTop: '4px' }}>
+                          by {log.decided_by_name}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))
