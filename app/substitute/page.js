@@ -4,15 +4,14 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { fetchCurrentVolunteer } from '@/lib/volunteer';
 import SubstituteRequestBox from '@/components/SubstituteRequestBox';
-import QuickSwitcher from '@/components/QuickSwitcher';
 import AuthGate from '@/components/AuthGate';
 import { useToast } from '@/components/Toast';
 import { ArrowRightLeft, UserCheck, Check, X } from 'lucide-react';
 
 const STATUS_STYLE = {
-  pending: { bg: '#fef3c7', color: '#92400e', label: 'Pending' },
-  accepted: { bg: '#dcfce7', color: '#166534', label: 'Accepted' },
-  declined: { bg: '#fee2e2', color: '#991b1b', label: 'Declined' }
+  pending: { tone: 'warning', label: 'Pending' },
+  accepted: { tone: 'success', label: 'Accepted' },
+  declined: { tone: 'danger', label: 'Declined' }
 };
 
 export default function SubstitutePage() {
@@ -63,13 +62,18 @@ export default function SubstitutePage() {
   return (
     <AuthGate minRoleLevel={1} requiredRoleName="Volunteer">
       <section>
-        <QuickSwitcher />
         <ToastHost />
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '14px', borderBottom: '2px solid var(--prodip-border)', flexWrap: 'wrap', gap: '12px' }}>
-          <h2 style={{ fontSize: '21px', color: 'var(--prodip-navy)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <ArrowRightLeft size={22} color="var(--prodip-gold)" /> Substitute Teacher Requests
-          </h2>
+        <div className="page-head">
+          <div className="page-head-main">
+            <div className="page-head-icon" style={{ background: 'var(--status-warning-bg)', color: 'var(--status-warning-fg)' }}>
+              <ArrowRightLeft size={21} />
+            </div>
+            <div>
+              <h2 className="page-head-title">Substitute Teacher Requests</h2>
+              <p className="page-head-subtitle">Ask another volunteer to cover your class, or answer a request sent to you.</p>
+            </div>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: '20px' }}>
@@ -89,7 +93,7 @@ export default function SubstitutePage() {
             </h3>
 
             {loadError && (
-              <div style={{ background: '#fee2e2', color: '#991b1b', padding: '10px 12px', borderRadius: '8px', fontSize: '12.5px', marginBottom: '12px' }}>
+              <div style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-fg)', padding: '10px 12px', borderRadius: '8px', fontSize: '12.5px', marginBottom: '12px' }}>
                 Could not load requests: {loadError}
               </div>
             )}
@@ -100,7 +104,7 @@ export default function SubstitutePage() {
                   const st = STATUS_STYLE[req.status] || STATUS_STYLE.pending;
                   const incoming = activeVolunteer && activeVolunteer.student_id === req.to_id;
                   return (
-                    <div key={req.id} style={{ border: '1px solid var(--prodip-border)', borderRadius: '10px', padding: '14px', background: req.status === 'accepted' ? '#f0fdf4' : '#fff' }}>
+                    <div key={req.id} style={{ border: '1px solid var(--prodip-border)', borderRadius: 'var(--radius-md)', padding: '14px', background: req.status === 'accepted' ? 'var(--status-success-bg)' : 'var(--prodip-card)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
                         <div style={{ minWidth: 0 }}>
                           <b style={{ fontSize: '14px', color: 'var(--prodip-navy)' }}>
@@ -110,9 +114,7 @@ export default function SubstitutePage() {
                             {incoming ? 'You are asked to cover this class' : 'You asked them to cover your class'}
                           </span>
                         </div>
-                        <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 9px', borderRadius: '12px', background: st.bg, color: st.color, flexShrink: 0 }}>
-                          {st.label}
-                        </span>
+                        <span className={`badge badge-${st.tone}`} style={{ flexShrink: 0 }}>{st.label}</span>
                       </div>
 
                       <div style={{ fontSize: '12.5px', marginBottom: '8px' }}>
@@ -126,10 +128,10 @@ export default function SubstitutePage() {
 
                       {req.status === 'pending' && incoming && (
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button className="btn-row" onClick={() => respond(req.id, true)} style={{ background: 'var(--prodip-olive)', color: '#fff' }}>
+                          <button className="btn-row" onClick={() => respond(req.id, true)} style={{ background: 'var(--status-success-solid)', color: '#fff' }}>
                             <Check size={14} /> Accept
                           </button>
-                          <button className="btn-row" onClick={() => respond(req.id, false)} style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}>
+                          <button className="btn-row" onClick={() => respond(req.id, false)} style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-fg)' }}>
                             <X size={14} /> Decline
                           </button>
                         </div>

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import QuickSwitcher from '@/components/QuickSwitcher';
 import { BookOpen, Search, CheckCircle } from 'lucide-react';
 
 export default function ActivitiesPage() {
@@ -28,16 +27,16 @@ export default function ActivitiesPage() {
 
   return (
     <section>
-      <QuickSwitcher />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '14px', borderBottom: '2px solid var(--prodip-border)', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h2 style={{ fontSize: '22px', color: 'var(--prodip-navy)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <BookOpen size={24} color="var(--prodip-olive)" /> Prodip Curriculum &amp; Volunteer Activities
-          </h2>
-          <span style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>
-            Regular educational and social development programs conducted by CUET student volunteers.
-          </span>
+      <div className="page-head">
+        <div className="page-head-main">
+          <div className="page-head-icon" style={{ background: 'var(--status-success-bg)', color: 'var(--status-success-fg)' }}>
+            <BookOpen size={21} />
+          </div>
+          <div>
+            <h2 className="page-head-title">Prodip Curriculum &amp; Volunteer Activities</h2>
+            <p className="page-head-subtitle">Regular educational and social development programs conducted by CUET student volunteers.</p>
+          </div>
         </div>
 
         <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: '320px' }}>
@@ -56,12 +55,8 @@ export default function ActivitiesPage() {
         {filtered.map((act) => (
           <div key={act.id} className="card" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <span style={{ background: '#e0e7ff', color: '#3730a3', fontSize: '11px', fontWeight: 800, padding: '3px 10px', borderRadius: '12px' }}>
-                {act.category || 'General Activity'}
-              </span>
-              <span style={{ background: '#dcfce7', color: '#166534', fontSize: '11px', fontWeight: 800, padding: '3px 10px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <CheckCircle size={12} /> {act.status || 'Active'}
-              </span>
+              <span className="badge badge-info">{act.category || 'General Activity'}</span>
+              <span className="badge badge-success"><CheckCircle size={12} /> {act.status || 'Active'}</span>
             </div>
 
             <h3 style={{ fontSize: '17px', color: 'var(--prodip-navy)', fontWeight: 800, marginBottom: '8px' }}>

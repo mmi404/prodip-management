@@ -4,12 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
-import QuickSwitcher from '@/components/QuickSwitcher';
 import LoginModal from '@/components/LoginModal';
 import AuthGate from '@/components/AuthGate';
 import { fetchCurrentVolunteer } from '@/lib/volunteer';
 import { formatClock, logDuration, sumMinutes, formatMinutes } from '@/lib/time';
-import { User, Award, Calendar, LogOut, Edit3, Shield, ShieldCheck, CheckCircle2, Flame, ArrowRightLeft, Clock } from 'lucide-react';
+import { User, Calendar, LogOut, Edit3, Flame, ArrowRightLeft, Clock } from 'lucide-react';
 
 export default function ProfilePage() {
   const [allVolunteers, setAllVolunteers] = useState([]);
@@ -152,7 +151,6 @@ export default function ProfilePage() {
   return (
     <AuthGate minRoleLevel={1} requiredRoleName="Volunteer">
       <section>
-        <QuickSwitcher />
 
       {/* TOP PROFILE HEADER BAR */}
       <div className="card" style={{ padding: '20px 24px', marginBottom: '24px', background: '#fff' }}>
@@ -164,9 +162,7 @@ export default function ProfilePage() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--prodip-navy)', margin: 0 }}>{activeVolunteer.full_name}</h2>
-                <span style={{ background: '#dcfce7', color: '#166534', fontSize: '11px', fontWeight: 800, padding: '3px 10px', borderRadius: '12px' }}>
-                  {userRole.name.toUpperCase()}
-                </span>
+                <span className="badge badge-success">{userRole.name.toUpperCase()}</span>
               </div>
               <div style={{ fontSize: '13px', color: 'var(--prodip-muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
                 <span>🪪 ID: <b>{activeVolunteer.student_id}</b></span>
@@ -204,9 +200,7 @@ export default function ProfilePage() {
         <div className="card" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
             <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--prodip-muted)', letterSpacing: '0.5px' }}>DESIGNATED STREAK</span>
-            <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '11px', fontWeight: 800, padding: '3px 10px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Flame size={13} color="#d97706" /> Active Streak
-            </span>
+            <span className="badge badge-warning"><Flame size={13} /> Active Streak</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '10px' }}>
             <span style={{ fontSize: '40px', fontWeight: 800, color: currentStreak > 0 ? 'var(--prodip-gold)' : '#94a3b8', lineHeight: 1 }}>{currentStreak}</span>
@@ -225,9 +219,7 @@ export default function ProfilePage() {
         <div className="card" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
             <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--prodip-muted)', letterSpacing: '0.5px' }}>CLASSES STATUS</span>
-            <span style={{ background: '#dcfce7', color: '#166534', fontSize: '11px', fontWeight: 800, padding: '3px 10px', borderRadius: '12px' }}>
-              Target: {target} Classes
-            </span>
+            <span className="badge badge-success">Target: {target} Classes</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
             <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px' }}>
@@ -302,9 +294,7 @@ export default function ProfilePage() {
             </h3>
             <span style={{ fontSize: '12px', color: 'var(--prodip-muted)' }}>Recorded in-time, out-time, replacement credit, and verified hours.</span>
           </div>
-          <span style={{ background: '#dcfce7', color: '#166534', fontSize: '11.5px', fontWeight: 800, padding: '4px 12px', borderRadius: '16px' }}>
-            Only Approved Records Shown
-          </span>
+          <span className="badge badge-success">Only Approved Records Shown</span>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
@@ -329,31 +319,23 @@ export default function ProfilePage() {
                       <span style={{ fontSize: '11.5px', color: 'var(--prodip-muted)', display: 'block' }}>{log.day_of_week}</span>
                     </td>
                     <td data-label="Activity" style={{ padding: '14px 12px' }}>
-                      <span style={{ background: '#e0e7ff', color: '#3730a3', fontSize: '11.5px', fontWeight: 700, padding: '3px 9px', borderRadius: '6px' }}>
-                        {log.activity_title}
-                      </span>
+                      <span className="badge badge-info">{log.activity_title}</span>
                     </td>
                     <td data-label="Attendance" style={{ padding: '14px 12px' }}>
                       {log.replacement_name ? (
                         <div>
-                          <span style={{ background: '#f3e8ff', color: '#6b21a8', fontSize: '11.5px', fontWeight: 700, padding: '4px 10px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            🔀 Covered for {log.instructor_name}
-                          </span>
+                          <span className="badge badge-info">🔀 Covered for {log.instructor_name}</span>
                           {log.notes && <span style={{ fontSize: '11px', color: 'var(--prodip-muted)', display: 'block', marginTop: '2px', fontStyle: 'italic' }}>{log.notes}</span>}
                         </div>
                       ) : (
-                        <span style={{ background: '#dcfce7', color: '#166534', fontSize: '11.5px', fontWeight: 700, padding: '4px 10px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          👤 Attended Directly
-                        </span>
+                        <span className="badge badge-success">👤 Attended Directly</span>
                       )}
                     </td>
                     <td data-label="In" style={{ padding: '14px 12px', color: '#475569' }}>{formatClock(log.in_time)}</td>
                     <td data-label="Out" style={{ padding: '14px 12px', color: '#475569' }}>{log.out_time ? formatClock(log.out_time) : '--'}</td>
                     <td data-label="Duration" style={{ padding: '14px 12px' }}><b>{logDuration(log)}</b></td>
                     <td data-label="Status" style={{ padding: '14px 12px' }}>
-                      <span style={{ background: '#059669', color: 'white', fontSize: '11.5px', fontWeight: 800, padding: '4px 12px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        ✓ Approved
-                      </span>
+                      <span className="badge badge-success">✓ Approved</span>
                     </td>
                   </tr>
                 ))
@@ -369,27 +351,13 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* USER CONTROL FOOTER LINKS */}
+      {/* Coordinator/Approvals/Admin links intentionally not repeated here — they
+          already live one tap away in the navbar's profile menu. */}
       <div style={{ marginTop: '24px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-        {userRole.level >= 3 && (
-          <Link href="/coordinator" className="btn-panel-link coord-bg" style={{ textDecoration: 'none' }}>
-            <Shield size={16} color="white" /> Open Coordinator Sheet
-          </Link>
-        )}
-        {userRole.level >= 4 && (
-          <Link href="/approvals" className="btn-panel-link admin-bg" style={{ textDecoration: 'none' }}>
-            <ShieldCheck size={16} color="white" /> Senior Coordinator Approvals
-          </Link>
-        )}
-        {userRole.level >= 6 && (
-          <Link href="/admin" className="btn-panel-link admin-bg" style={{ textDecoration: 'none' }}>
-            <ShieldCheck size={16} color="white" /> Volunteers &amp; Roles Admin
-          </Link>
-        )}
-        <button onClick={() => setIsEditModalOpen(true)} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--prodip-border)', background: '#fff', cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <button onClick={() => setIsEditModalOpen(true)} className="btn-row" style={{ background: 'var(--prodip-card)', border: '1px solid var(--prodip-border)', color: 'var(--prodip-navy)', minHeight: '42px' }}>
           <Edit3 size={15} /> Edit Contact Info
         </button>
-        <button onClick={handleSignOut} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #fecdd3', background: '#fff1f2', color: '#991b1b', cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <button onClick={handleSignOut} className="btn-row" style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-fg)', minHeight: '42px' }}>
           <LogOut size={15} /> Sign Out
         </button>
       </div>

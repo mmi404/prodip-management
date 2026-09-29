@@ -154,54 +154,34 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
         </p>
 
         {/* TAB TOGGLE */}
-        <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', marginBottom: '16px' }}>
+        <div className="segmented" style={{ width: '100%', marginBottom: '16px' }}>
           <button
             type="button"
             onClick={() => { setActiveTab('signin'); setErrorMsg(null); setSuccessMsg(null); }}
-            style={{
-              flex: 1,
-              padding: '6px 10px',
-              borderRadius: '6px',
-              border: 'none',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              background: activeTab === 'signin' ? '#fff' : 'transparent',
-              color: activeTab === 'signin' ? 'var(--prodip-navy)' : 'var(--prodip-muted)',
-              boxShadow: activeTab === 'signin' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
-            }}
+            className={`segmented-btn ${activeTab === 'signin' ? 'active' : ''}`}
+            style={{ flex: 1 }}
           >
             Sign In
           </button>
           <button
             type="button"
             onClick={() => { setActiveTab('signup'); setErrorMsg(null); setSuccessMsg(null); }}
-            style={{
-              flex: 1,
-              padding: '6px 10px',
-              borderRadius: '6px',
-              border: 'none',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              background: activeTab === 'signup' ? '#fff' : 'transparent',
-              color: activeTab === 'signup' ? 'var(--prodip-navy)' : 'var(--prodip-muted)',
-              boxShadow: activeTab === 'signup' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
-            }}
+            className={`segmented-btn ${activeTab === 'signup' ? 'active' : ''}`}
+            style={{ flex: 1 }}
           >
             Sign Up / Register
           </button>
         </div>
 
         {errorMsg && (
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '11.5px', color: '#dc2626', background: '#fee2e2', padding: '10px 12px', borderRadius: '6px', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '11.5px', color: 'var(--status-danger-fg)', background: 'var(--status-danger-bg)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', marginBottom: '14px' }}>
             <AlertCircle size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>{errorMsg}</div>
           </div>
         )}
 
         {successMsg && (
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '11.5px', color: '#166534', background: '#dcfce7', padding: '10px 12px', borderRadius: '6px', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '11.5px', color: 'var(--status-success-fg)', background: 'var(--status-success-bg)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', marginBottom: '14px' }}>
             <CheckCircle2 size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>{successMsg}</div>
           </div>
@@ -244,7 +224,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
               <button
                 type="submit"
                 disabled={loading}
-                style={{ background: 'var(--prodip-crimson)', color: 'white', border: 'none', padding: '9px 18px', borderRadius: '6px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                style={{ background: 'var(--prodip-navy)', color: 'white', border: 'none', padding: '9px 18px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <LogIn size={14} />
                 {loading ? 'Signing in...' : 'Sign In'}
@@ -351,7 +331,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
               <button
                 type="submit"
                 disabled={loading}
-                style={{ background: 'var(--prodip-navy)', color: 'white', border: 'none', padding: '9px 18px', borderRadius: '6px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                style={{ background: 'var(--prodip-navy)', color: 'white', border: 'none', padding: '9px 18px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <UserPlus size={14} />
                 {loading ? 'Registering...' : 'Register'}

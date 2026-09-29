@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import QuickSwitcher from '@/components/QuickSwitcher';
 import AuthGate from '@/components/AuthGate';
 import { useToast } from '@/components/Toast';
 import {
@@ -345,21 +344,25 @@ export default function CoordinatorPage() {
   return (
     <AuthGate minRoleLevel={3} requiredRoleName="Coordinator">
       <section>
-        <QuickSwitcher />
         <ToastHost />
 
         {/* HEADER BAR */}
-        <div style={{ marginBottom: '16px', paddingBottom: '14px', borderBottom: '2px solid var(--prodip-border)' }}>
-          <h2 style={{ fontSize: '21px', color: 'var(--prodip-navy)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Shield size={24} color="var(--prodip-olive)" /> Coordinator Attendance Sheet
-          </h2>
-          <span style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>
-            Tap <b>Now</b> when a mentor arrives, <b>Check Out</b> when they finish, then send the batch for approval.
-          </span>
+        <div className="page-head">
+          <div className="page-head-main">
+            <div className="page-head-icon" style={{ background: 'var(--status-success-bg)', color: 'var(--status-success-fg)' }}>
+              <Shield size={21} />
+            </div>
+            <div>
+              <h2 className="page-head-title">Coordinator Attendance Sheet</h2>
+              <p className="page-head-subtitle">
+                Tap <b>Now</b> when a mentor arrives, <b>Check Out</b> when they finish, then send the batch for approval.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* SESSION BAR */}
-        <div className="card" style={{ marginBottom: '20px', padding: '16px 20px', background: '#f8fafc' }}>
+        <div className="card" style={{ marginBottom: '20px', padding: '16px 20px', background: 'var(--surface-sunken)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', alignItems: 'end' }}>
             <div>
               <label style={labelStyle}>Activity</label>

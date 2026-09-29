@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import QuickSwitcher from '@/components/QuickSwitcher';
 import AuthGate from '@/components/AuthGate';
 import { escapeHtml as esc } from '@/lib/escapeHtml';
 import { formatClock, logDuration, sumMinutes, formatMinutes, minutesToDecimalHours } from '@/lib/time';
@@ -401,39 +400,25 @@ export default function AuditPage() {
   return (
     <AuthGate minRoleLevel={3} requiredRoleName="Coordinator">
       <section>
-        <QuickSwitcher />
 
-      {/* PAGE HEADER WITH CSV & PRINT BUTTONS (Image 4) */}
-      <div className="card" style={{ padding: '20px 24px', marginBottom: '24px', background: '#fff' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Award size={26} color="#d97706" />
-            </div>
-            <div>
-              <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--prodip-navy)', margin: 0 }}>
-                Volunteer Milestone &amp; Certificate Audit Report
-              </h2>
-              <span style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>
-                Official data table of volunteers who took classes, total hours verified, and certification eligibility for manual certificate issuance.
-              </span>
-            </div>
+      <div className="page-head" style={{ marginBottom: '24px' }}>
+        <div className="page-head-main">
+          <div className="page-head-icon" style={{ background: 'var(--status-warning-bg)', color: 'var(--status-warning-fg)' }}>
+            <Award size={21} />
           </div>
+          <div>
+            <h2 className="page-head-title">Volunteer Milestone &amp; Certificate Audit</h2>
+            <p className="page-head-subtitle">Verified hours and certification eligibility, for manual certificate issuance.</p>
+          </div>
+        </div>
 
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <button
-              onClick={handleExportCSV}
-              style={{ background: 'var(--prodip-navy)', color: 'white', border: 'none', padding: '10px 18px', borderRadius: '8px', fontSize: '13px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-              <Download size={15} /> Export to CSV
-            </button>
-            <button
-              onClick={handlePrint}
-              style={{ background: '#f1f5f9', border: '1px solid var(--prodip-border)', color: 'var(--prodip-navy)', padding: '10px 18px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-              <Printer size={15} /> Print
-            </button>
-          </div>
+        <div className="page-head-actions">
+          <button onClick={handleExportCSV} className="btn-row" style={{ background: 'var(--prodip-navy)', color: 'white', minHeight: '42px' }}>
+            <Download size={15} /> Export CSV
+          </button>
+          <button onClick={handlePrint} className="btn-row" style={{ background: 'var(--prodip-card)', border: '1px solid var(--prodip-border)', color: 'var(--prodip-navy)', minHeight: '42px' }}>
+            <Printer size={15} /> Print
+          </button>
         </div>
       </div>
 
@@ -465,38 +450,12 @@ export default function AuditPage() {
       </div>
 
       {/* TAB NAVIGATION: AUDIT VS EXCEL ALL ENTRIES */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
-        <button
-          onClick={() => setActiveTab('audit')}
-          style={{
-            padding: '10px 18px',
-            borderRadius: '8px',
-            border: 'none',
-            fontSize: '13.5px',
-            fontWeight: 800,
-            cursor: 'pointer',
-            background: activeTab === 'audit' ? 'var(--prodip-navy)' : '#fff',
-            color: activeTab === 'audit' ? 'white' : 'var(--prodip-navy)',
-            border: '1px solid var(--prodip-border)'
-          }}
-        >
-          🏅 Volunteer Class &amp; Hours Audit
+      <div className="segmented" style={{ marginBottom: '16px', width: 'fit-content' }}>
+        <button onClick={() => setActiveTab('audit')} className={`segmented-btn ${activeTab === 'audit' ? 'active dark' : ''}`}>
+          🏅 Class &amp; Hours Audit
         </button>
-        <button
-          onClick={() => setActiveTab('all-entries')}
-          style={{
-            padding: '10px 18px',
-            borderRadius: '8px',
-            border: 'none',
-            fontSize: '13.5px',
-            fontWeight: 800,
-            cursor: 'pointer',
-            background: activeTab === 'all-entries' ? 'var(--prodip-navy)' : '#fff',
-            color: activeTab === 'all-entries' ? 'white' : 'var(--prodip-navy)',
-            border: '1px solid var(--prodip-border)'
-          }}
-        >
-          📊 All Entries Master Register (Excel View)
+        <button onClick={() => setActiveTab('all-entries')} className={`segmented-btn ${activeTab === 'all-entries' ? 'active dark' : ''}`}>
+          📊 All Entries Register
         </button>
       </div>
 
@@ -507,9 +466,7 @@ export default function AuditPage() {
             <h3 style={{ fontSize: '18px', color: 'var(--prodip-navy)', fontWeight: 800 }}>
               Volunteer Class &amp; Hours Audit
             </h3>
-            <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '11.5px', fontWeight: 700, padding: '4px 12px', borderRadius: '16px' }}>
-              {filteredVolunteers.length} volunteers
-            </span>
+            <span className="badge badge-neutral">{filteredVolunteers.length} volunteers</span>
           </div>
           <div style={{ position: 'relative', maxWidth: '360px', marginBottom: '16px' }}>
             <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
@@ -567,7 +524,7 @@ export default function AuditPage() {
                         <b>{v.total_hours || '0 min'}</b>
                       </td>
                       <td data-label="Certificate" style={{ padding: '14px 12px' }}>
-                        <span style={{ background: left === 0 ? '#dcfce7' : '#f1f5f9', color: left === 0 ? '#166534' : '#475569', fontSize: '11.5px', fontWeight: 700, padding: '3px 10px', borderRadius: '12px' }}>
+                        <span className={`badge ${left === 0 ? 'badge-success' : 'badge-neutral'}`}>
                           {left === 0 ? 'Eligible' : `${left} classes left`}
                         </span>
                       </td>
@@ -634,14 +591,7 @@ export default function AuditPage() {
                       <td data-label="Out" style={{ padding: '10px 12px' }}>{log.out_time ? formatClock(log.out_time) : '--'}</td>
                       <td data-label="Duration" style={{ padding: '10px 12px' }}>{logDuration(log)}</td>
                       <td data-label="Status" style={{ padding: '10px 12px' }}>
-                        <span style={{
-                          padding: '3px 8px',
-                          borderRadius: '10px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          background: log.status === 'Approved' ? '#dcfce7' : log.status === 'Rejected' ? '#fee2e2' : '#fef9c3',
-                          color: log.status === 'Approved' ? '#166534' : log.status === 'Rejected' ? '#991b1b' : '#854d0e'
-                        }}>
+                        <span className={`badge ${log.status === 'Approved' ? 'badge-success' : log.status === 'Rejected' ? 'badge-danger' : 'badge-warning'}`}>
                           {log.status}
                         </span>
                       </td>

@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { CUET_DEPARTMENTS } from '@/lib/cuetDepartments';
-import QuickSwitcher from '@/components/QuickSwitcher';
 import AuthGate from '@/components/AuthGate';
 import { useToast } from '@/components/Toast';
 import { fetchCurrentVolunteer } from '@/lib/volunteer';
@@ -227,21 +226,19 @@ export default function AdminPage() {
   return (
     <AuthGate minRoleLevel={6} requiredRoleName="System Administrator">
       <section>
-        <QuickSwitcher />
         <ToastHost />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '24px', paddingBottom: '14px', borderBottom: '2px solid var(--prodip-border)' }}>
-        <div>
-          <h2 style={{ fontSize: '22px', color: 'var(--prodip-navy)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <ShieldCheck size={24} color="var(--prodip-crimson)" /> PVMS Master Admin Panel
-          </h2>
-          <span style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>
-            System Administrator console for approving attendance submissions and managing volunteer roster data.
-          </span>
+      <div className="page-head">
+        <div className="page-head-main">
+          <div className="page-head-icon" style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-fg)' }}>
+            <ShieldCheck size={21} />
+          </div>
+          <div>
+            <h2 className="page-head-title">PVMS Master Admin Panel</h2>
+            <p className="page-head-subtitle">Approve attendance submissions and manage volunteer roster data.</p>
+          </div>
         </div>
-        <span style={{ fontSize: '12.5px', background: '#fee2e2', color: '#991b1b', padding: '5px 14px', borderRadius: '20px', fontWeight: 700, whiteSpace: 'nowrap' }}>
-          System Administrator
-        </span>
+        <span className="badge badge-danger">System Administrator</span>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -281,14 +278,14 @@ export default function AdminPage() {
                             className="btn-row"
                             disabled={!log.out_time}
                             title={!log.out_time ? 'No out-time recorded yet' : ''}
-                            style={{ background: log.out_time ? 'var(--prodip-olive)' : '#94a3b8', color: 'white' }}
+                            style={{ background: log.out_time ? 'var(--status-success-solid)' : '#94a3b8', color: 'white' }}
                             onClick={() => decideLog(log, 'Approved')}
                           >
                             <Check size={13} /> Approve
                           </button>
                           <button
                             className="btn-row"
-                            style={{ background: 'var(--prodip-crimson)', color: 'white' }}
+                            style={{ background: 'var(--status-danger-solid)', color: 'white' }}
                             onClick={() => decideLog(log, 'Rejected')}
                           >
                             <X size={13} /> Reject
@@ -332,16 +329,10 @@ export default function AdminPage() {
                   style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--prodip-border)', borderRadius: '6px', fontSize: '12.5px' }}
                 />
               </div>
-              <button
-                onClick={() => setIsAddVolunteerModalOpen(true)}
-                style={{ background: 'var(--prodip-navy)', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
+              <button onClick={() => setIsAddVolunteerModalOpen(true)} className="btn-row" style={{ background: 'var(--prodip-navy)', color: 'white' }}>
                 <UserPlus size={14} /> Add Volunteer
               </button>
-              <button
-                onClick={() => setIsBatchUploadModalOpen(true)}
-                style={{ background: '#059669', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
+              <button onClick={() => setIsBatchUploadModalOpen(true)} className="btn-row" style={{ background: 'var(--status-success-solid)', color: 'white' }}>
                 <Upload size={14} /> Batch CSV Upload
               </button>
             </div>
@@ -370,9 +361,7 @@ export default function AdminPage() {
                     </td>
                     <td data-label="Dept / Batch" style={{ padding: '12px' }}>{v.department || '—'} {v.batch || ''}</td>
                     <td data-label="Role" style={{ padding: '12px' }}>
-                      <span style={{ background: '#e0e7ff', color: '#3730a3', padding: '3px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 700 }}>
-                        Level {v.role_level || 1}
-                      </span>
+                      <span className="badge badge-info">Level {v.role_level || 1}</span>
                     </td>
                     <td data-label="Target" style={{ padding: '12px' }}><b>{v.target_classes || 20}</b></td>
                     <td data-label="Days" style={{ padding: '12px', fontSize: '12px' }}>
@@ -381,7 +370,8 @@ export default function AdminPage() {
                     <td data-label="Actions" style={{ padding: '12px', textAlign: 'right' }}>
                       <button
                         onClick={() => handleDeleteVolunteer(v.student_id, v.full_name)}
-                        style={{ background: '#fee2e2', color: '#991b1b', border: 'none', padding: '5px 10px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        className="btn-row"
+                        style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-fg)' }}
                       >
                         <Trash2 size={12} /> Remove
                       </button>

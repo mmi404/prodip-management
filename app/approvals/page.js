@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import QuickSwitcher from '@/components/QuickSwitcher';
 import AuthGate from '@/components/AuthGate';
 import { useToast } from '@/components/Toast';
 import { fetchCurrentVolunteer } from '@/lib/volunteer';
@@ -246,40 +245,27 @@ export default function ApprovalsPage() {
   return (
     <AuthGate minRoleLevel={4} requiredRoleName="Senior Coordinator">
       <section>
-        <QuickSwitcher />
         <ToastHost />
 
       {/* TOP HEADER & TAB BAR */}
-      <div className="card" style={{ marginBottom: '24px', padding: '20px 24px', background: '#fff' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f3e8ff', color: '#6b21a8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Shield size={24} color="#6b21a8" />
+      <div className="card" style={{ marginBottom: '20px', padding: '20px 24px' }}>
+        <div className="page-head" style={{ marginBottom: '16px' }}>
+          <div className="page-head-main">
+            <div className="page-head-icon" style={{ background: 'var(--status-info-bg)', color: 'var(--status-info-fg)' }}>
+              <Shield size={21} />
             </div>
             <div>
-              <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--prodip-navy)', margin: 0 }}>Attendance Approval Queue</h2>
-              <span style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>
-                Senior Coordinator &amp; Admin verification queue for volunteer participation and streak accreditation.
-              </span>
+              <h2 className="page-head-title">Attendance Approval Queue</h2>
+              <p className="page-head-subtitle">Verification queue for volunteer participation and streak accreditation.</p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px', flexWrap: 'wrap' }}>
+          <div className="segmented">
             {['Pending', 'Approved', 'Rejected', 'All'].map((status) => (
               <button
                 key={status}
+                className={`segmented-btn ${filterStatus === status ? 'active' : ''}`}
                 onClick={() => setFilterStatus(status)}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '7px',
-                  border: 'none',
-                  fontSize: '12.5px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  background: filterStatus === status ? '#fff' : 'transparent',
-                  color: filterStatus === status ? 'var(--prodip-navy)' : 'var(--prodip-muted)',
-                  boxShadow: filterStatus === status ? '0 1px 4px rgba(0,0,0,0.06)' : 'none'
-                }}
               >
                 {status} {status === 'Pending' ? `(${pendingCount})` : ''}
               </button>
@@ -288,49 +274,22 @@ export default function ApprovalsPage() {
         </div>
 
         {/* SECONDARY NAVIGATION TABS */}
-        <div style={{ display: 'flex', gap: '10px', marginTop: '20px', borderTop: '1px solid var(--prodip-border)', paddingTop: '14px', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setActiveTab('queue')}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: 'none',
-              fontSize: '13px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              background: activeTab === 'queue' ? 'var(--prodip-navy)' : '#f8fafc',
-              color: activeTab === 'queue' ? 'white' : 'var(--prodip-navy)'
-            }}
-          >
+        <div className="segmented" style={{ background: 'transparent', border: 'none', padding: 0 }}>
+          <button onClick={() => setActiveTab('queue')} className={`segmented-btn ${activeTab === 'queue' ? 'active dark' : ''}`}>
             📋 Submissions Queue ({pendingCount})
           </button>
-          <button
-            onClick={() => setActiveTab('mentors')}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: 'none',
-              fontSize: '13px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              background: activeTab === 'mentors' ? 'var(--prodip-navy)' : '#f8fafc',
-              color: activeTab === 'mentors' ? 'white' : 'var(--prodip-navy)'
-            }}
-          >
+          <button onClick={() => setActiveTab('mentors')} className={`segmented-btn ${activeTab === 'mentors' ? 'active dark' : ''}`}>
             👥 Manage Mentors &amp; Teacher Data
           </button>
         </div>
       </div>
 
       {activeTab === 'queue' ? (
-        /* APPROVAL QUEUE TABLE (Image 3) */
+        /* APPROVAL QUEUE TABLE */
         <div className="card" style={{ padding: '24px' }}>
-          <div style={{ marginBottom: '18px' }}>
-            <h3 style={{ fontSize: '18px', color: 'var(--prodip-navy)', fontWeight: 800 }}>Review Submissions ({filteredLogs.length})</h3>
-            <span style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>
-              Approving a record officially credits the class to the mentor's milestone progress bar and streak.
-            </span>
-          </div>
+          <p style={{ fontSize: '12.5px', color: 'var(--prodip-muted)', marginBottom: '18px' }}>
+            Approving a record officially credits the class to the mentor&apos;s milestone progress bar and streak.
+          </p>
 
           <div style={{ overflowX: 'auto' }}>
             <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
@@ -365,13 +324,9 @@ export default function ApprovalsPage() {
                       </td>
                       <td data-label="Type" style={{ padding: '14px 12px' }}>
                         {log.replacement_name ? (
-                          <span style={{ background: '#f3e8ff', color: '#6b21a8', fontSize: '11.5px', fontWeight: 700, padding: '4px 10px', borderRadius: '12px' }}>
-                            🔀 Covering for {log.instructor_name}
-                          </span>
+                          <span className="badge badge-info">🔀 Covering for {log.instructor_name}</span>
                         ) : (
-                          <span style={{ background: '#dcfce7', color: '#166534', fontSize: '11.5px', fontWeight: 700, padding: '4px 10px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            👤 Attended Directly
-                          </span>
+                          <span className="badge badge-success">👤 Attended Directly</span>
                         )}
                       </td>
                       <td data-label="Time" style={{ padding: '14px 12px' }}>
@@ -383,14 +338,7 @@ export default function ApprovalsPage() {
                         {log.topic_covered || 'No remarks'}
                       </td>
                       <td data-label="Status" style={{ padding: '14px 12px' }}>
-                        <span style={{
-                          padding: '4px 10px',
-                          borderRadius: '12px',
-                          fontSize: '11.5px',
-                          fontWeight: 800,
-                          background: log.status === 'Approved' ? '#dcfce7' : log.status === 'Rejected' ? '#fee2e2' : '#fef9c3',
-                          color: log.status === 'Approved' ? '#166534' : log.status === 'Rejected' ? '#991b1b' : '#854d0e'
-                        }}>
+                        <span className={`badge ${log.status === 'Approved' ? 'badge-success' : log.status === 'Rejected' ? 'badge-danger' : 'badge-warning'}`}>
                           {log.status === 'Pending' ? '⌛ Pending' : log.status}
                         </span>
                       </td>
@@ -402,20 +350,20 @@ export default function ApprovalsPage() {
                               disabled={!log.out_time}
                               title={!log.out_time ? 'No out-time recorded yet' : ''}
                               onClick={() => decide(log, 'Approved')}
-                              style={{ background: !log.out_time ? '#94a3b8' : '#059669', color: 'white' }}
+                              style={{ background: !log.out_time ? '#94a3b8' : 'var(--status-success-solid)', color: 'white' }}
                             >
                               <Check size={14} /> Approve
                             </button>
                             <button
                               className="btn-row"
-                                              onClick={() => decide(log, 'Rejected')}
-                              style={{ background: '#dc2626', color: 'white' }}
+                              onClick={() => decide(log, 'Rejected')}
+                              style={{ background: 'var(--status-danger-solid)', color: 'white' }}
                             >
                               <X size={14} /> Reject
                             </button>
                           </div>
                         ) : (
-                          <span style={{ fontSize: '12px', color: 'var(--prodip-muted)', fontStyle: 'italic' }}>Verified</span>
+                          <span className="badge badge-neutral">Verified</span>
                         )}
                       </td>
                     </tr>
@@ -450,16 +398,10 @@ export default function ApprovalsPage() {
                   style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--prodip-border)', borderRadius: '6px', fontSize: '12.5px' }}
                 />
               </div>
-              <button
-                onClick={() => setIsAddVolunteerModalOpen(true)}
-                style={{ background: 'var(--prodip-navy)', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
+              <button onClick={() => setIsAddVolunteerModalOpen(true)} className="btn-row" style={{ background: 'var(--prodip-navy)', color: 'white' }}>
                 <UserPlus size={14} /> Add Volunteer
               </button>
-              <button
-                onClick={() => setIsBatchUploadModalOpen(true)}
-                style={{ background: '#059669', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
+              <button onClick={() => setIsBatchUploadModalOpen(true)} className="btn-row" style={{ background: 'var(--status-success-solid)', color: 'white' }}>
                 <Upload size={14} /> Batch CSV Upload
               </button>
             </div>
@@ -484,9 +426,7 @@ export default function ApprovalsPage() {
                     <td data-label="Student ID" style={{ padding: '12px' }}><b>{v.student_id}</b></td>
                     <td data-label="Name" style={{ padding: '12px' }}>{v.full_name}</td>
                     <td data-label="Role" style={{ padding: '12px' }}>
-                      <span style={{ background: '#e0e7ff', color: '#3730a3', padding: '3px 9px', borderRadius: '12px', fontSize: '11px', fontWeight: 700 }}>
-                        Level {v.role_level || 1}
-                      </span>
+                      <span className="badge badge-info">Level {v.role_level || 1}</span>
                     </td>
                     <td data-label="Target" style={{ padding: '12px' }}><b>{v.target_classes || 20} Classes</b></td>
                     <td data-label="Days" style={{ padding: '12px' }}>{(v.designated_days || []).join(', ') || '—'}</td>
@@ -501,7 +441,8 @@ export default function ApprovalsPage() {
                           });
                           setIsEditMentorModalOpen(true);
                         }}
-                        style={{ background: '#f1f5f9', border: '1px solid var(--prodip-border)', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                        className="btn-row"
+                        style={{ background: 'var(--surface-hover)', border: '1px solid var(--prodip-border)', color: 'var(--prodip-navy)' }}
                       >
                         Edit Mentor
                       </button>

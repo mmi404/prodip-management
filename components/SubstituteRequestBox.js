@@ -79,9 +79,7 @@ export default function SubstituteRequestBox({ activeVolunteer, onSent }) {
           <ArrowRightLeft size={18} color="var(--prodip-gold)" />
           Request a Substitute Teacher
         </h3>
-        <span className="role-badge" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', fontSize: '11px', padding: '4px 10px' }}>
-          Class Duty Transfer
-        </span>
+        <span className="badge badge-warning">Class Duty Transfer</span>
       </div>
 
       <p style={{ fontSize: '13px', color: 'var(--prodip-muted)', marginBottom: '16px' }}>
