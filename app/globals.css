@@ -897,6 +897,42 @@ button:disabled {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* ─── SITE FOOTER ─── */
+.site-footer {
+    border-top: 1px solid var(--prodip-border);
+    padding: 20px;
+    text-align: center;
+}
+
+.site-footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.site-footer-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--prodip-navy);
+    text-decoration: none;
+}
+
+.site-footer-link:hover {
+    background: var(--surface-hover);
+}
+
+.site-footer-meta {
+    font-size: 11.5px;
+    color: var(--prodip-muted);
+}
+
 /* ─── MOBILE BOTTOM TAB BAR ─── */
 .mobile-tabbar {
     display: none;
