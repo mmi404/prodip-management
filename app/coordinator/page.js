@@ -363,7 +363,7 @@ export default function CoordinatorPage() {
 
         {/* SESSION BAR */}
         <div className="card" style={{ marginBottom: '20px', padding: '16px 20px', background: 'var(--surface-sunken)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', alignItems: 'end' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: '14px', alignItems: 'end' }}>
             <div>
               <label style={labelStyle}>Activity</label>
               <select value={selectedActivity} onChange={(e) => setSelectedActivity(e.target.value)} style={inputStyle}>
@@ -636,7 +636,7 @@ export default function CoordinatorPage() {
                 </select>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginBottom: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: '10px', marginBottom: '12px' }}>
                 <div>
                   <label style={labelStyle}>Instructor</label>
                   <select value={editData.instructor_id} onChange={(e) => setEditData({ ...editData, instructor_id: e.target.value })} style={inputStyle}>

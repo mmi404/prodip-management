@@ -647,8 +647,8 @@ export default function ApprovalsPage() {
                   </h4>
                   <span style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>Ready to import</span>
                 </div>
-                <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--prodip-border)', borderRadius: '6px' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+                <div style={{ maxHeight: '200px', overflowY: 'auto', overflowX: 'auto', border: '1px solid var(--prodip-border)', borderRadius: '6px' }}>
+                  <table style={{ width: '100%', minWidth: '480px', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ background: '#f1f5f9' }}>
                         <th style={{ padding: '6px 8px' }}>ID</th>
