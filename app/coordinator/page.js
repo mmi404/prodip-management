@@ -13,7 +13,8 @@ import {
   localDateStr,
   dayNameOf
 } from '@/lib/time';
-import { Shield, Search, CheckCircle, Send, Trash2, Edit3, PlusCircle, ArrowRightLeft, Undo2 } from 'lucide-react';
+import { Shield, Search, CheckCircle, Send, Trash2, Edit3, PlusCircle, ArrowRightLeft, Undo2, Bell } from 'lucide-react';
+import { sendCustomNotificationToMany } from '@/lib/notifications';
 
 const labelStyle = { fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' };
 const inputStyle = { width: '100%', padding: '9px 12px', border: '1px solid var(--prodip-border)', borderRadius: '8px', fontSize: '14px', background: '#fff' };
@@ -36,8 +37,10 @@ export default function CoordinatorPage() {
   // Per-mentor live state for the schedule table: { [student_id]: { in_time, out_time, replacement_id, replacement_name, staged } }
   const [sessions, setSessions] = useState({});
   const [stagedBatch, setStagedBatch] = useState([]);
-  // Sessions already saved in the DB for the chosen date, to stop double-submitting.
-  const [submittedKeys, setSubmittedKeys] = useState(new Set());
+  // Sessions already saved in the DB for the chosen date. A mentor can legitimately
+  // teach more than one class the same day, so this is informational (a badge) and
+  // for exact-duplicate protection only — it never blocks a new, distinct session.
+  const [submittedLogs, setSubmittedLogs] = useState([]);
 
   // Manual check-in form state
   const [selectedInstructorId, setSelectedInstructorId] = useState('');
@@ -54,6 +57,13 @@ export default function CoordinatorPage() {
   // Replacement picker modal
   const [replacementFor, setReplacementFor] = useState(null); // student_id
   const [replacementPick, setReplacementPick] = useState('');
+
+  // Send Notification panel
+  const [notifAudience, setNotifAudience] = useState('pick'); // 'pick' | 'all'
+  const [notifRecipients, setNotifRecipients] = useState([]);
+  const [notifTitle, setNotifTitle] = useState('');
+  const [notifBody, setNotifBody] = useState('');
+  const [sendingNotif, setSendingNotif] = useState(false);
 
   const dayOfWeekStr = dayNameOf(sessionDate);
 
@@ -119,10 +129,12 @@ export default function CoordinatorPage() {
   const loadSubmitted = async (date) => {
     const { data } = await supabase
       .from('attendance_logs')
-      .select('instructor_id, activity_title, status')
+      .select('instructor_id, activity_title, status, in_time, out_time')
       .eq('session_date', date)
       .neq('status', 'Rejected');
-    setSubmittedKeys(new Set((data || []).map((l) => `${l.instructor_id}|${l.activity_title}`)));
+    const logs = data || [];
+    setSubmittedLogs(logs);
+    return logs;
   };
 
   const onDateChange = async (newDate) => {
@@ -138,18 +150,13 @@ export default function CoordinatorPage() {
   );
 
   const nameOf = (id) => roster.find((v) => v.student_id === id)?.full_name || id;
-  const isAlreadySubmitted = (id) => submittedKeys.has(`${id}|${selectedActivity}`);
+  // Informational only — a mentor can have more than one class logged the same day.
+  const submittedCountFor = (id) => submittedLogs.filter((l) => l.instructor_id === id && l.activity_title === selectedActivity).length;
 
   const patchSession = (id, patch) => setSessions((prev) => ({ ...prev, [id]: { ...(prev[id] || {}), ...patch } }));
 
-  const stagedHas = (id) => stagedBatch.some((b) => b.instructor_id === id && b.activity_title === selectedActivity);
-
   // 1. Stamp In-Time
   const handleStampInTime = (studentId) => {
-    if (isAlreadySubmitted(studentId)) {
-      toast(`${nameOf(studentId)} already has a ${selectedActivity} record for ${sessionDate}.`, 'error');
-      return;
-    }
     patchSession(studentId, { in_time: nowHHMM() });
   };
 
@@ -162,8 +169,10 @@ export default function CoordinatorPage() {
       toast('Check-out time is earlier than in-time. Use Undo and re-stamp (or fix it in the manual form).', 'error');
       return;
     }
-    if (stagedHas(studentId)) {
-      toast(`${nameOf(studentId)} is already staged.`, 'error');
+    // Guards against the same click re-firing before the row re-renders — not
+    // against a genuine second class, which can have a different in_time.
+    if (stagedBatch.some((b) => b.instructor_id === studentId && b.activity_title === selectedActivity && b.in_time === s.in_time)) {
+      toast(`${nameOf(studentId)}'s ${formatClock(s.in_time)} session is already staged.`, 'error');
       return;
     }
 
@@ -220,8 +229,13 @@ export default function CoordinatorPage() {
     if (!manualInTime || !manualOutTime) return toast('Both in-time and out-time are required.', 'error');
     if (durationMinutes(manualInTime, manualOutTime) === null) return toast('Out-time must be later than in-time.', 'error');
     if (selectedReplacementId && selectedReplacementId === selectedInstructorId) return toast('Replacement cannot be the same person.', 'error');
-    if (isAlreadySubmitted(selectedInstructorId) || stagedHas(selectedInstructorId)) {
-      return toast(`${nameOf(selectedInstructorId)} already has a ${selectedActivity} record for ${sessionDate}.`, 'error');
+    // Block only an exact duplicate (same person/activity/date/times) — a mentor can
+    // legitimately teach more than one class the same day at different times.
+    const isExactDuplicate = (l) =>
+      l.instructor_id === selectedInstructorId && l.activity_title === selectedActivity &&
+      l.in_time === manualInTime && l.out_time === manualOutTime;
+    if (submittedLogs.some(isExactDuplicate) || stagedBatch.some(isExactDuplicate)) {
+      return toast(`${nameOf(selectedInstructorId)} already has that exact ${selectedActivity} session for ${sessionDate}.`, 'error');
     }
 
     const item = {
@@ -291,9 +305,13 @@ export default function CoordinatorPage() {
 
     setSubmitting(true);
 
-    // Drop anything that was saved by someone else since this batch was staged.
-    await loadSubmitted(sessionDate);
-    const fresh = stagedBatch.filter((b) => !submittedKeys.has(`${b.instructor_id}|${b.activity_title}`));
+    // Drop only exact duplicates (same person/activity/times) saved by someone else
+    // since this batch was staged — distinct sessions for the same person/day are fine.
+    const latest = await loadSubmitted(sessionDate);
+    const fresh = stagedBatch.filter((b) => !latest.some((l) =>
+      l.instructor_id === b.instructor_id && l.activity_title === b.activity_title &&
+      l.in_time === b.in_time && l.out_time === b.out_time
+    ));
     const dupes = stagedBatch.length - fresh.length;
 
     const payloads = fresh.map((item) => ({
@@ -340,6 +358,41 @@ export default function CoordinatorPage() {
       v.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       v.student_id.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const isAdmin = (activeVolunteer?.role_level || 0) >= 6;
+  // Coordinators can only message people strictly below their own role level;
+  // the Master Admin can also broadcast to everyone via notifAudience === 'all'.
+  const messageable = roster.filter((v) => v.student_id !== activeVolunteer?.student_id && v.role_level < (activeVolunteer?.role_level || 0));
+
+  const toggleNotifRecipient = (id) => {
+    setNotifRecipients((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const handleSendNotification = async () => {
+    if (!notifTitle.trim() || !notifBody.trim()) return toast('Title and message are both required.', 'error');
+    const recipientIds = notifAudience === 'all'
+      ? roster.filter((v) => v.student_id !== activeVolunteer?.student_id).map((v) => v.student_id)
+      : notifRecipients;
+    if (recipientIds.length === 0) return toast('Pick at least one recipient.', 'error');
+
+    setSendingNotif(true);
+    try {
+      const sentCount = await sendCustomNotificationToMany(recipientIds, notifTitle.trim(), notifBody.trim());
+      toast(
+        sentCount === recipientIds.length
+          ? `Sent to ${sentCount} recipient${sentCount === 1 ? '' : 's'}.`
+          : `Sent to ${sentCount} of ${recipientIds.length} recipients (some were not eligible).`,
+        'success'
+      );
+      setNotifTitle('');
+      setNotifBody('');
+      setNotifRecipients([]);
+    } catch (err) {
+      toast(`Could not send: ${err.message}`, 'error', 7000);
+    } finally {
+      setSendingNotif(false);
+    }
+  };
 
   return (
     <AuthGate minRoleLevel={3} requiredRoleName="Coordinator">
@@ -428,20 +481,23 @@ export default function CoordinatorPage() {
                 <tbody>
                   {scheduledMentors.map((m) => {
                     const s = sessions[m.student_id] || {};
-                    const done = isAlreadySubmitted(m.student_id);
+                    const priorCount = submittedCountFor(m.student_id);
                     return (
                       <tr key={m.student_id} style={{ borderBottom: '1px solid var(--prodip-border)' }}>
                         <td data-label="Mentor" style={{ padding: '14px 12px' }}>
                           <b style={{ fontSize: '14px', color: 'var(--prodip-navy)', display: 'block' }}>{m.full_name}</b>
                           <span style={{ fontSize: '11.5px', color: 'var(--prodip-muted)' }}>ID: {m.student_id}</span>
+                          {priorCount > 0 && (
+                            <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#166534', display: 'block', marginTop: '2px' }}>
+                              {priorCount} {selectedActivity} session{priorCount === 1 ? '' : 's'} already logged today
+                            </span>
+                          )}
                         </td>
                         <td data-label="Days" style={{ padding: '14px 12px', fontSize: '12px' }}>
                           {(m.designated_days || []).map((d) => d.slice(0, 3)).join(', ') || '—'}
                         </td>
                         <td data-label="In" style={{ padding: '14px 12px' }}>
-                          {done ? (
-                            <span style={{ color: '#166534', fontWeight: 700 }}>Submitted</span>
-                          ) : s.in_time ? (
+                          {s.in_time ? (
                             <b style={{ color: '#166534' }}>{formatClock(s.in_time)}</b>
                           ) : (
                             <button className="btn-row" onClick={() => handleStampInTime(m.student_id)} style={{ background: '#059669', color: '#fff' }}>
@@ -595,6 +651,78 @@ export default function CoordinatorPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* SEND NOTIFICATION */}
+        <div className="card" style={{ marginBottom: '20px', padding: '20px' }}>
+          <h3 style={{ fontSize: '17px', color: 'var(--prodip-navy)', fontWeight: 800, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Bell size={17} /> Send a Notification
+          </h3>
+          <p style={{ fontSize: '12.5px', color: 'var(--prodip-muted)', marginBottom: '14px' }}>
+            {isAdmin ? 'Message any volunteer, or broadcast to everyone.' : 'Message volunteers at a lower role level than yours.'}
+          </p>
+
+          <div className="segmented" style={{ marginBottom: '14px' }}>
+            <button
+              type="button"
+              className={`segmented-btn ${notifAudience === 'pick' ? 'active' : ''}`}
+              onClick={() => setNotifAudience('pick')}
+            >
+              Pick Recipients
+            </button>
+            {isAdmin && (
+              <button
+                type="button"
+                className={`segmented-btn ${notifAudience === 'all' ? 'active' : ''}`}
+                onClick={() => setNotifAudience('all')}
+              >
+                Everyone ({roster.length - 1})
+              </button>
+            )}
+          </div>
+
+          {notifAudience === 'pick' && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '140px', overflowY: 'auto', border: '1px solid var(--prodip-border)', borderRadius: '8px', padding: '10px', marginBottom: '14px' }}>
+              {messageable.length === 0 ? (
+                <span style={{ fontSize: '12.5px', color: 'var(--prodip-muted)' }}>No one at a lower role level to message.</span>
+              ) : (
+                messageable.map((v) => (
+                  <label key={v.student_id} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', background: notifRecipients.includes(v.student_id) ? 'var(--status-info-bg)' : '#f1f5f9', padding: '5px 9px', borderRadius: '14px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={notifRecipients.includes(v.student_id)} onChange={() => toggleNotifRecipient(v.student_id)} />
+                    {v.full_name}
+                  </label>
+                ))
+              )}
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gap: '10px', marginBottom: '12px' }}>
+            <input
+              type="text"
+              placeholder="Title"
+              value={notifTitle}
+              onChange={(e) => setNotifTitle(e.target.value)}
+              style={inputStyle}
+              maxLength={80}
+            />
+            <textarea
+              rows={3}
+              placeholder="Message"
+              value={notifBody}
+              onChange={(e) => setNotifBody(e.target.value)}
+              style={inputStyle}
+              maxLength={500}
+            />
+          </div>
+
+          <button
+            className="btn-primary-action"
+            disabled={sendingNotif}
+            onClick={handleSendNotification}
+            style={{ background: sendingNotif ? '#94a3b8' : 'var(--prodip-navy)' }}
+          >
+            <Send size={15} /> {sendingNotif ? 'Sending...' : 'Send Notification'}
+          </button>
         </div>
 
         {/* REPLACEMENT PICKER */}
